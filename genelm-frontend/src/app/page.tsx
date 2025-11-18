@@ -1,0 +1,79 @@
+"use client";
+import Link from "next/link";
+import { Card , CardHeader, CardContent , CardDescription , CardTitle , CardAction, CardFooter} from "~/components/ui/card";
+import {useEffect} from "react";
+import { getAvailableGenomeAssemblies } from "~/utils/genome-api";
+
+export default function HomePage() {
+  useEffect( () => {
+
+    const fetchGenomeAssemblies = async () => {
+      const assemblies = await getAvailableGenomeAssemblies();
+      console.log("Available Genome Assemblies:", assemblies);
+    }
+    void fetchGenomeAssemblies();
+
+
+  }, []);
+
+
+  return (
+
+    <div className="min-h-screen bg-gradient-to-br from-[#dfe9f3] via-[#e9eeea] to-[#f7f7f7]">
+      {/* 顶部导航条 */}
+      <header className="border-b border-black/5 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3c4f3d] text-xs font-semibold text-white shadow-sm">
+              GenLM
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-[#1f2933]">
+                GenLM · Variant Analysis
+              </p>
+              <p className="text-xs text-[#6b7280]">
+                Genetic insights powered by Stanford Ev2 Model
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+        <span className="rounded-full bg-[#3c4f3d]/5 px-3 py-1 text-xs font-medium text-[#3c4f3d]">
+          Jarvis&apos;s Biomedical Project
+        </span>
+          </div>
+        </div>
+      </header>
+
+      {/* 主内容区 */}
+      <main className="mx-auto flex max-w-4xl flex-col items-center px-6 py-16">
+        <h1 className="mb-6 text-center text-4xl font-bold text-[#111827]">
+          Gene Variant Analysis
+        </h1>
+        <p className="mb-10 max-w-2xl text-center text-lg text-[#374151]">
+          Leverage the power of Stanford&apos;s Ev2 model to analyze genetic variants and gain actionable insights for biomedical research.
+        </p>
+
+        <Card className="w-180">
+          <CardHeader>
+            <CardTitle>Genome Assembly</CardTitle>
+            <CardDescription>
+              Select the reference genome assembly for your analysis.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <p>Card Content</p>
+          </CardContent>
+          <CardFooter>
+            <p>Card Footer</p>
+          </CardFooter>
+        </Card>
+
+      </main>
+
+
+    </div>
+
+  );
+}
