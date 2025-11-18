@@ -1,20 +1,62 @@
 "use client";
 import Link from "next/link";
 import { Card , CardHeader, CardContent , CardDescription , CardTitle , CardAction, CardFooter} from "~/components/ui/card";
-import {useEffect} from "react";
-import { getAvailableGenomeAssemblies } from "~/utils/genome-api";
+import {useEffect, useState} from "react";
+import { 
+  type GenomeFromUCSC, 
+  getAvailableGenomeAssemblies } from "~/utils/genome-api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
 export default function HomePage() {
+
+  const [isLoading , setIsLoading] = useState(false)
+
+  const [error , setError] = useState<string | null>(null);
+
+
+  const [genomes , setGenomes] = useState<GenomeFromUCSC[]>([])
+
+  const [organism , setOrganism] = useState<string>("Human")
+
+  const [selectGenome , setSelectGenome] = useState<string>("hg38")
+
+
+
+
+
+
   useEffect( () => {
 
     const fetchGenomeAssemblies = async () => {
-      const assemblies = await getAvailableGenomeAssemblies();
-      console.log("Available Genome Assemblies:", assemblies);
-    }
-    void fetchGenomeAssemblies();
+      try{
 
+        setIsLoading(true)
+        
+        const genomesData = await getAvailableGenomeAssemblies();
+
+        if( genomesData.genomes && genomesData.genomes["Human"]){
+          setGenomes(genomesData.genomes["Human"])
+        }
+
+        console.log("Available Genome Assemblies:", genomesData);
+
+      }catch (error) {
+        setError("Failed to fetch genomes");
+      } finally {
+        setIsLoading(false);
+      }
+
+
+      
+    }
+    fetchGenomeAssemblies();
 
   }, []);
+
+
+  const handleGenomeChange = (value:string) => {
+    setSelectGenome(value);
+  }
 
 
   return (
@@ -63,11 +105,34 @@ export default function HomePage() {
           </CardHeader>
 
           <CardContent>
-            <p>Card Content</p>
+            <Select 
+            value = {selectGenome} 
+            onValueChange={handleGenomeChange} 
+            disabled = {isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder = "select genome assembly">
+                </SelectValue>
+              </SelectTrigger>
+
+              <SelectContent>
+                {genomes.map( (genome) => (
+                  <SelectItem key = {genome.id}  value={genome.id}>
+
+                    {genome.id} - {genome.description}
+                    {genome.active ? "(active)" : "(inactive)"} 
+                    
+                  </SelectItem>
+                ) )}
+              </SelectContent>
+               
+
+            </Select>
+            
+
+
           </CardContent>
-          <CardFooter>
-            <p>Card Footer</p>
-          </CardFooter>
+          
         </Card>
 
       </main>
