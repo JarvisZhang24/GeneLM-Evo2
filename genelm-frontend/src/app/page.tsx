@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card , CardHeader, CardContent , CardDescription , CardTitle , CardAction, CardFooter} from "~/components/ui/card";
 import {useEffect, useState} from "react";
 import { 
-  type GenomeFromUCSC, 
+  type SingleGenomeInfo, 
   getAvailableGenomeAssemblies } from "~/utils/genome-api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
@@ -14,15 +14,11 @@ export default function HomePage() {
   const [error , setError] = useState<string | null>(null);
 
 
-  const [genomes , setGenomes] = useState<GenomeFromUCSC[]>([])
+  const [genomes , setGenomes] = useState<SingleGenomeInfo[]>([])
 
   const [organism , setOrganism] = useState<string>("Human")
 
   const [selectGenome , setSelectGenome] = useState<string>("hg38")
-
-
-
-
 
 
   useEffect( () => {
