@@ -23,9 +23,9 @@ type Mode = "browse" | "search"
 
 export default function HomePage() {
 
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>("test error");
 
   const [organism, setOrganism] = useState<string>("Human")
 
@@ -135,6 +135,27 @@ export default function HomePage() {
     setMode(newMode)
   }
 
+  const loadBRCA1Example = () =>{
+    setMode("search")
+
+    setSearchQuery("BRCA1")
+
+    //
+
+  }
+
+  const handleSearchQuery = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault(); 
+    if(!searchQuery.trim()) return
+
+    // perform gene search
+
+
+
+
+    
+  }
+
 
   return (
 
@@ -187,6 +208,19 @@ export default function HomePage() {
               {/* 1. 选择物种 */}
               <div className="space-y-1">
                 <p className="text-sm font-medium text-[#111827]">Organism</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {['Human', 'Gorilla', 'Horse', 'Dog', 'Cat'].map((species) => (
+                    <Button
+                      key={species}
+                      variant={organism === species ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleOrganismChange(species)}
+                      disabled={!Object.keys(genomesByOrganism).includes(species)}
+                    >
+                      {species}
+                    </Button>
+                  ))}
+                </div>
                 <Select
                   value={organism}
                   onValueChange={handleOrganismChange}
@@ -242,11 +276,7 @@ export default function HomePage() {
                 )}
               </div>
 
-              {error && (
-                <p className="text-xs text-red-600">
-                  {error}
-                </p>
-              )}
+        
             </CardContent>
           </Card>
 
@@ -272,7 +302,7 @@ export default function HomePage() {
                 </TabsList>
 
                 <TabsContent value="search" className="mt-4">
-                  <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-4">
+                  <form onSubmit={handleSearchQuery} className="space-y-4">
                     <div className="flex gap-2">
                       <Input 
                         type="text" 
@@ -288,9 +318,42 @@ export default function HomePage() {
                     </div>
                   </form>
 
-                  <Button variant= "link" className="gap-2 px-4">
+                  <Button 
+                  variant= "link" 
+                  className="gap-2 px-4"
+                  onClick={loadBRCA1Example}
+                  >
                     Try BRCA1 Example
                   </Button>
+                </TabsContent>
+
+                <TabsContent value="browse" className="mt-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Select a chromosome to browse
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {chromosomes
+                        .filter((chrom) => chrom.name.startsWith('chr'))
+                        .map((chrom) => (
+                          <Button 
+                            key={chrom.name} 
+                            variant="outline"
+                            onClick={() => setselectedChromosomes(chrom.name)}
+                            className={selectedChromosomes === chrom.name ? "border-primary bg-primary/10" : ""}
+                          >
+                            {chrom.name}
+                          </Button>
+                        ))}
+                    </div>
+                    {selectedChromosomes && (
+                      <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium">
+                          Selected: {selectedChromosomes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
 
