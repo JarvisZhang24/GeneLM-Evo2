@@ -1,12 +1,25 @@
 "use client";
-import Link from "next/link";
-import { Card, CardHeader, CardContent, CardDescription, CardTitle, CardAction, CardFooter } from "~/components/ui/card";
+import { Card, CardHeader, CardContent, CardDescription, CardTitle } from "~/components/ui/card";
 import { useEffect, useState } from "react";
+
 import {
   type SingleGenomeInfo,
   getAvailableGenomeAssemblies
 } from "~/utils/genome-api";
+
+import{
+  type SingleChromosomeInfo,
+  getGenomeChromosomes
+} from "~/utils/chromosomes-api"
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Car, Search } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
+
+
+type Mode = "browse" | "search"
 
 export default function HomePage() {
 
@@ -14,18 +27,27 @@ export default function HomePage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [organism, setOrganism] = useState<string>("Human")
 
   const [genomes, setGenomes] = useState<SingleGenomeInfo[]>([])
 
-  const [organism, setOrganism] = useState<string>("Human")
+  const [chromosomes , setChromosomes  ] = useState<SingleChromosomeInfo[]>([])
 
   const [selectedGenome, setSelectedGenome] = useState<string>("hg38")
+
+  const [selectedChromosomes , setselectedChromosomes] = useState<string>("")
 
   const [genomesByOrganism, setGenomesByOrganism] = useState<
     Record<string, SingleGenomeInfo[]>
   >({});
 
+  const [searchQuery ,setSearchQuery ] = useState<string>("") 
 
+  const [mode, setMode] = useState<Mode>("search")
+
+
+
+ // select genome
   useEffect(() => {
 
     const fetchGenomeAssemblies = async () => {
@@ -37,10 +59,10 @@ export default function HomePage() {
 
         setGenomesByOrganism(genomesData.genomes);
 
+        //Set default genomes
         if (genomesData.genomes && genomesData.genomes["Human"]) {
           setGenomes(genomesData.genomes["Human"])
         }
-
         console.log("Available Genome Assemblies:", genomesData);
 
       } catch (error) {
@@ -48,13 +70,44 @@ export default function HomePage() {
       } finally {
         setIsLoading(false);
       }
-
-
-
     }
     fetchGenomeAssemblies();
 
   }, []);
+
+  // select chromosomes
+  useEffect(() => {
+
+    const fetchChromosomes = async () => {
+      try {
+
+        setIsLoading(true)
+
+        const chromosomeData = await getGenomeChromosomes(selectedGenome)
+
+        setChromosomes(chromosomeData.chromosomes)
+
+        console.log(chromosomeData.chromosomes)
+
+        if(chromosomeData.chromosomes.length > 0){
+          setselectedChromosomes(chromosomeData.chromosomes[0]!.name)
+        }
+        
+
+      } catch (error) {
+        setError(`Failed to fetch Chromosomes ${error}`);
+      } finally {
+        setIsLoading(false);
+      }
+
+    }
+
+    fetchChromosomes();
+
+  }, [selectedGenome]);
+
+
+
 
   const handleOrganismChange = (value: string) => {
     setOrganism(value);
@@ -62,17 +115,24 @@ export default function HomePage() {
     const orgGenomes = genomesByOrganism[value] ?? [];
     setGenomes(orgGenomes);
 
-    // 切换物种时，默认选中该物种的第一个基因组
+    // ✨ 改进：自动选中第一个，而不是置空
     if (orgGenomes.length > 0) {
-      setSelectedGenome(orgGenomes[0].id);
+        setSelectedGenome(orgGenomes[0]!.id);
     } else {
-      setSelectedGenome("");
+        setSelectedGenome("");
     }
+    
   };
 
 
   const handleGenomeChange = (value: string) => {
     setSelectedGenome(value);
+  }
+
+  const switchMode = (newMode : Mode) =>{
+    if(newMode === mode ) return
+
+    setMode(newMode)
   }
 
 
@@ -87,17 +147,17 @@ export default function HomePage() {
               GenLM
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-[#1f2933]">
+              <p className="text-x font-semibold text-[#1f2933]">
                 GenLM · Variant Analysis
               </p>
-              <p className="text-xs text-[#6b7280]">
+              <p className="text-x text-[#6b7280]">
                 Genetic insights powered by Stanford Ev2 Model
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-[#3c4f3d]/5 px-3 py-1 text-xs font-medium text-[#3c4f3d]">
+            <span className="rounded-full bg-[#3c4f3d]/5 px-3 py-1 text-xl font-medium text-[#3c4f3d]">
               Jarvis&apos;s Biomedical Project
             </span>
           </div>
@@ -105,7 +165,7 @@ export default function HomePage() {
       </header>
 
       {/* 主内容区 */}
-      <main className="mx-auto flex max-w-4xl flex-col items-center px-6 py-16">
+      <main className="mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-16">
         <h1 className="mb-6 text-center text-4xl font-bold text-[#111827]">
           Gene Variant Analysis
         </h1>
@@ -113,129 +173,130 @@ export default function HomePage() {
           Leverage the power of Stanford&apos;s Ev2 model to analyze genetic variants and gain actionable insights for biomedical research.
         </p>
 
-        {/* <Card className="w-180">
-          <CardHeader>
-            <CardTitle>Genome Assembly</CardTitle>
-            <CardDescription>
-              Select the reference genome assembly for your analysis.
-            </CardDescription>
-          </CardHeader>
+        <div className="grid w-full gap-6 md:grid-cols-2">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Genome Assembly</CardTitle>
+              <CardDescription>
+                First choose an organism, then select a reference genome assembly
+                for your analysis.
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent>
-            <Select
-              value={selectedGenome}
-              onValueChange={handleGenomeChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="select genome assembly">
-                </SelectValue>
-              </SelectTrigger>
+            <CardContent className="space-y-4">
+              {/* 1. 选择物种 */}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-[#111827]">Organism</p>
+                <Select
+                  value={organism}
+                  onValueChange={handleOrganismChange}
+                  disabled={isLoading || Object.keys(genomesByOrganism).length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organism" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(genomesByOrganism).map((org) => (
+                      <SelectItem key={org} value={org}>
+                        {org}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <SelectContent>
-                {genomes.map((genome) => (
-                  <SelectItem key={genome.id} value={genome.id}>
-
-                    {genome.id} - {genome.description}
-                    {genome.active ? "(active)" : "(inactive)"}
-
-                  </SelectItem>
-                ))}
-              </SelectContent>
-
-
-            </Select>
-
-            {
-              selectedGenome &&
-              (
-                <p className="mt-2 text-xs">
-                  {
-                    genomes.find((genomes) => genomes.id === selectedGenome)?.sourceName
-                  }
+              {/* 2. 选择该物种下的基因组 */}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-[#111827]">
+                  Genome Assembly
                 </p>
+                <Select
+                  value={selectedGenome}
+                  onValueChange={handleGenomeChange}
+                  disabled={isLoading || genomes.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select genome assembly" />
+                  </SelectTrigger>
 
-              )
+                  <SelectContent>
+                    {genomes.map((genome) => (
+                      <SelectItem key={genome.id} value={genome.id}>
 
-            }
+                        {genome.id} - {genome.description}{" "}
 
+                        {genome.active ? "(active)" : "(inactive)"}
 
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-          </CardContent>
+                {selectedGenome && (
+                  <p className="mt-2 text-xs text-[#4b5563]">
+                    {
+                      genomes.find((g) => g.id === selectedGenome)
+                        ?.sourceName
+                    }
+                  </p>
+                )}
+              </div>
 
-        </Card> */}
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>Genome Assembly</CardTitle>
-            <CardDescription>
-              First choose an organism, then select a reference genome assembly
-              for your analysis.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {/* 1. 选择物种 */}
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#111827]">Organism</p>
-              <Select
-                value={organism}
-                onValueChange={handleOrganismChange}
-                disabled={isLoading || Object.keys(genomesByOrganism).length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select organism" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(genomesByOrganism).map((org) => (
-                    <SelectItem key={org} value={org}>
-                      {org}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 2. 选择该物种下的基因组 */}
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#111827]">
-                Genome Assembly
-              </p>
-              <Select
-                value={selectedGenome}
-                onValueChange={handleGenomeChange}
-                disabled={isLoading || genomes.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select genome assembly" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {genomes.map((genome) => (
-                    <SelectItem key={genome.id} value={genome.id}>
-                      {genome.id} - {genome.description}{" "}
-                      {genome.active ? "(active)" : "(inactive)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedGenome && (
-                <p className="mt-2 text-xs text-[#4b5563]">
-                  {
-                    genomes.find((g) => g.id === selectedGenome)
-                      ?.sourceName
-                  }
+              {error && (
+                <p className="text-xs text-red-600">
+                  {error}
                 </p>
               )}
-            </div>
+            </CardContent>
+          </Card>
 
-            {error && (
-              <p className="text-xs text-red-600">
-                {error}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Browse Chromosomes</CardTitle>
+              <CardDescription>
+                
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <Tabs value={mode} onValueChange={(value) => switchMode(value as Mode)}>
+                <TabsList>
+                  <TabsTrigger value="search">
+                    Search Genes
+                  </TabsTrigger>
+
+                  <TabsTrigger value="browse">
+                    Browse Chromosomes
+                  </TabsTrigger>
+
+                </TabsList>
+
+                <TabsContent value="search" className="mt-4">
+                  <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input 
+                        type="text" 
+                        placeholder="Enter gene symbol or name" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button type = "submit" className="gap-2 px-4" disabled = {isLoading || !searchQuery.trim()}>
+                        <Search className="h-4 w-4" />
+                        <span>Search</span>
+                      </Button>
+                    </div>
+                  </form>
+
+                  <Button variant= "link" className="gap-2 px-4">
+                    Try BRCA1 Example
+                  </Button>
+                </TabsContent>
+              </Tabs>
+
+            </CardContent>
+          </Card>
+        </div>
 
       </main>
 
