@@ -5,7 +5,8 @@ import { Geist } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "GeneLM-EV2 Web UI",
-  description: "Web interface for GeneLM-EV2, an open-source large language model optimized for gene sequence understanding and generation.",
+  description:
+    "Web interface for GeneLM-EV2, an open-source large language model optimized for gene sequence understanding and generation.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
