@@ -16,18 +16,20 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import {
-  Search,
   Dna,
   Activity,
   ArrowRight,
   Github,
-  BookOpen,
   Menu,
   Cpu,
+  Sparkles,
+  Zap,
+  Database,
+  X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   type SingleGenomeInfo,
@@ -37,11 +39,29 @@ import {
   type SingleChromosomeInfo,
   getGenomeChromosomes,
 } from "~/utils/chromosomes-api";
+import type { SingleGeneInfo } from "~/utils/genes-api";
+import { getGenes } from "~/utils/genes-api";
+import { GeneSearchTab } from "~/components/gene-search-tab";
+import { ChromosomeBrowserTab } from "~/components/chromosome-browser-tab";
+import { GeneDetailDialog } from "~/components/gene-detail-dialog";
 
 type Mode = "browse" | "search";
 
+const MotionDiv = motion.div;
+
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Track scroll for header effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   const [organism, setOrganism] = useState<string>("Human");
@@ -49,10 +69,14 @@ export default function HomePage() {
   const [chromosomes, setChromosomes] = useState<SingleChromosomeInfo[]>([]);
   const [selectedGenome, setSelectedGenome] = useState<string>("hg38");
   const [selectedChromosomes, setselectedChromosomes] = useState<string>("");
+  const [selectedGene, setSelectedGene] = useState<SingleGeneInfo | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [geneSearchResults, setGeneSearchResults] = useState<SingleGeneInfo[]>(
+    [],
+  );
   const [genomesByOrganism, setGenomesByOrganism] = useState<
     Record<string, SingleGenomeInfo[]>
   >({});
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [mode, setMode] = useState<Mode>("browse");
 
   // select genome
@@ -79,13 +103,19 @@ export default function HomePage() {
 
   // select chromosomes
   useEffect(() => {
+    if (!selectedGenome) return;
+
     const fetchChromosomes = async () => {
       try {
         setIsLoading(true);
         const chromosomeData = await getGenomeChromosomes(selectedGenome);
         setChromosomes(chromosomeData.chromosomes);
 
-        console.log(chromosomeData.chromosomes);
+        console.log(
+          "Fetched chromosomes for",
+          selectedGenome,
+          chromosomeData.chromosomes,
+        );
 
         if (chromosomeData.chromosomes.length > 0) {
           setselectedChromosomes(chromosomeData.chromosomes[0]!.name);
@@ -100,10 +130,47 @@ export default function HomePage() {
     fetchChromosomes();
   }, [selectedGenome]);
 
+  const performGeneSearch = async (
+    query: string,
+    genome: string,
+    filterFn?: (gene: SingleGeneInfo) => boolean,
+  ) => {
+    try {
+      setIsLoading(true);
+      const geneData = await getGenes(query, genome);
+      const geneResults = filterFn
+        ? geneData.genesResult.filter(filterFn)
+        : geneData.genesResult;
+
+      setGeneSearchResults(geneResults);
+
+      console.log(geneResults);
+    } catch (err) {
+      setError("Failed to search genes");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedChromosomes || mode !== "browse" || !selectedGenome) return;
+
+    performGeneSearch(
+      selectedChromosomes,
+      selectedGenome,
+      (gene: SingleGeneInfo) => gene.chrom === selectedChromosomes,
+    );
+  }, [selectedChromosomes, selectedGenome, mode]);
+
   const handleOrganismChange = (value: string) => {
     setOrganism(value);
     const orgGenomes = genomesByOrganism[value] ?? [];
     setGenomes(orgGenomes);
+
+    setGeneSearchResults([]);
+    setSelectedGene(null);
+    setChromosomes([]);
+    setselectedChromosomes("");
 
     // ✨ 改进：自动选中第一个，而不是置空
     if (orgGenomes.length > 0) {
@@ -115,132 +182,299 @@ export default function HomePage() {
 
   const handleGenomeChange = (value: string) => {
     setSelectedGenome(value);
+    setGeneSearchResults([]);
+    setSelectedGene(null);
+    setChromosomes([]);
+    setselectedChromosomes("");
   };
 
   const switchMode = (newMode: Mode) => {
     if (newMode === mode) return;
+
+    setGeneSearchResults([]);
+    setSelectedGene(null);
+
+    setError(null);
+
+    if (newMode === "browse" && selectedChromosomes) {
+      performGeneSearch(
+        selectedChromosomes,
+        selectedGenome,
+        (gene: SingleGeneInfo) => gene.chrom === selectedChromosomes,
+      );
+    }
+
     setMode(newMode);
   };
 
-  const loadBRCA1Example = () => {
-    setMode("search");
-    setSearchQuery("BRCA1");
-  };
-
-  const handleSearchQuery = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-    // perform gene search
+  const handleGeneClick = (gene: SingleGeneInfo) => {
+    setSelectedGene(gene);
+    setDialogOpen(true);
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-50 to-white">
       {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
+      <header
+        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+          scrolled
+            ? "border-b border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-xl"
+            : "border-b border-transparent bg-transparent"
+        }`}
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
               <Dna className="h-5 w-5" />
+              <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-400" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900">
+            <span className="text-xl font-bold tracking-tight text-slate-900">
               GeneLM
             </span>
           </div>
 
-          <nav className="hidden items-center gap-2 md:flex">
-            <Button variant="ghost" asChild>
-              <a href="#" className="text-slate-600">
-                About Me
-              </a>
+          <nav className="hidden items-center gap-1 md:flex">
+            <Button
+              variant="ghost"
+              asChild
+              className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <a href="#">About Me</a>
             </Button>
-            <Button variant="ghost" asChild>
-              <a href="#" className="text-slate-600">
-                My Projects
-              </a>
+            <Button
+              variant="ghost"
+              asChild
+              className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <a href="#">My Projects</a>
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <a href="#tools">Tools</a>
             </Button>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-4 md:flex">
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 md:flex">
               <a
-                href="#"
-                className="text-slate-500 transition-colors hover:text-slate-900"
+                href="https://github.com/JarvisZhang24"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
               >
                 <Github className="h-5 w-5" />
               </a>
               <Button
                 size="sm"
-                className="bg-slate-900 text-white hover:bg-slate-800"
+                className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
               >
+                <Sparkles className="mr-1.5 h-4 w-4" />
                 View Source
               </Button>
             </div>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <MotionDiv
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="border-t border-slate-200 bg-white/95 backdrop-blur-xl md:hidden"
+            >
+              <nav className="flex flex-col gap-1 p-4">
+                <Button variant="ghost" asChild className="justify-start">
+                  <a href="#">About Me</a>
+                </Button>
+                <Button variant="ghost" asChild className="justify-start">
+                  <a href="#">My Projects</a>
+                </Button>
+                <Button variant="ghost" asChild className="justify-start">
+                  <a href="#tools">Tools</a>
+                </Button>
+                <div className="my-2 h-px bg-slate-200" />
+                <Button
+                  size="sm"
+                  className="bg-linear-to-r from-emerald-600 to-teal-600 text-white"
+                >
+                  <Github className="mr-2 h-4 w-4" />
+                  View Source
+                </Button>
+              </nav>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
       </header>
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-white pt-20 pb-16 lg:pt-32 lg:pb-32">
+        <section className="relative overflow-hidden bg-linear-to-b from-white via-slate-50/50 to-slate-50 pt-20 pb-16 lg:pt-28 lg:pb-28">
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-            <div className="mx-auto mb-8 flex max-w-fit items-center justify-center space-x-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 shadow-sm transition-colors hover:bg-slate-100">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="text-sm font-medium text-slate-600">
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mx-auto mb-6 flex max-w-fit items-center justify-center space-x-2 rounded-full border border-emerald-200/60 bg-linear-to-r from-emerald-50 to-teal-50 px-4 py-2 shadow-sm"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-sm font-medium text-emerald-700">
                 Personal Research Project
               </span>
-            </div>
+            </MotionDiv>
 
-            <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-              Genomic Intelligence <br className="hidden sm:block" />
-              <span className="text-slate-500">Powered by Stanford Ev2</span>
-            </h1>
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                Genomic Intelligence <br className="hidden sm:block" />
+                <span className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  Powered by Stanford Evo2
+                </span>
+              </h1>
+            </MotionDiv>
 
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              A demonstration of using state-of-the-art language models for
-              understanding genetic variants and evolutionary constraints. Built
-              by Jarvis Zhang.
-            </p>
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+                A demonstration of using state-of-the-art language models for
+                understanding genetic variants and evolutionary constraints.
+              </p>
+            </MotionDiv>
 
-            <div className="mt-10 flex items-center justify-center gap-x-6">
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+            >
               <Button
                 size="lg"
-                className="gap-2 bg-slate-900 px-8 text-white hover:bg-slate-800"
+                className="group gap-2 bg-linear-to-r from-emerald-600 to-teal-600 px-8 text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30"
+                onClick={() =>
+                  document
+                    .getElementById("tools")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
               >
-                Explore Demo <ArrowRight className="h-4 w-4" />
+                Explore Demo
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
-              <Button variant="outline" size="lg" className="gap-2 px-8">
-                <Github className="h-4 w-4" /> View Code
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2 border-slate-300 px-8 hover:bg-slate-50"
+                asChild
+              >
+                <a
+                  href="https://github.com/JarvisZhang24"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github className="h-4 w-4" /> View Code
+                </a>
               </Button>
-            </div>
+            </MotionDiv>
+
+            {/* Feature Pills */}
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-12 flex flex-wrap items-center justify-center gap-3"
+            >
+              {[
+                { icon: Zap, label: "Real-time Analysis" },
+                { icon: Database, label: "Multi-genome Support" },
+                { icon: Dna, label: "Gene Browser" },
+              ].map((feature) => (
+                <div
+                  key={feature.label}
+                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm"
+                >
+                  <feature.icon className="h-4 w-4 text-emerald-500" />
+                  {feature.label}
+                </div>
+              ))}
+            </MotionDiv>
           </div>
 
           {/* Decorative gradient background */}
-          <div className="absolute top-0 -z-10 h-full w-full bg-white">
-            <div className="absolute top-0 right-0 bottom-auto left-auto h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.05)] blur-[80px]" />
-            <div className="absolute top-auto right-auto bottom-0 left-0 h-[500px] w-[500px] translate-x-[10%] -translate-y-[30%] rounded-full bg-[rgba(108,207,250,0.05)] blur-[80px]" />
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-linear-to-br from-emerald-100/40 to-teal-100/40 blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-linear-to-tr from-cyan-100/40 to-blue-100/40 blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-linear-to-r from-purple-100/20 to-pink-100/20 blur-3xl" />
           </div>
         </section>
 
         {/* Dashboard / Tools Section */}
-        <section className="bg-slate-50 py-16 sm:py-24">
+        <section
+          id="tools"
+          className="bg-linear-to-b from-slate-50 to-white py-16 sm:py-24"
+        >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            {/* Section Header */}
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-12 text-center"
+            >
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Genome Explorer
+              </h2>
+              <p className="mt-3 text-lg text-slate-600">
+                Browse and search genes across multiple genome assemblies
+              </p>
+            </MotionDiv>
+
             <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-12">
               {/* Left Panel: Configuration */}
-              <div className="space-y-6 lg:col-span-4">
+              <MotionDiv
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="space-y-6 lg:col-span-4"
+              >
                 <div className="flex items-center gap-2 pb-2">
-                  <div className="h-6 w-1 rounded-full bg-slate-900" />
+                  <div className="h-6 w-1 rounded-full bg-linear-to-b from-emerald-500 to-teal-500" />
                   <h2 className="text-xl font-semibold text-slate-900">
                     Configuration
                   </h2>
                 </div>
 
-                <Card className="border-slate-200 shadow-sm transition-shadow hover:shadow-md">
-                  <CardHeader>
+                <Card className="border-slate-200/80 bg-white/80 shadow-lg shadow-slate-200/50 backdrop-blur-sm transition-all hover:shadow-xl hover:shadow-slate-200/60">
+                  <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Cpu className="h-4 w-4 text-slate-500" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-100 to-teal-100">
+                        <Cpu className="h-4 w-4 text-emerald-600" />
+                      </div>
                       Genome Assembly
                     </CardTitle>
                     <CardDescription>
@@ -268,11 +502,11 @@ export default function HomePage() {
                                   species,
                                 )
                               }
-                              className={
+                              className={`transition-all ${
                                 organism === species
-                                  ? "bg-slate-900 hover:bg-slate-800"
-                                  : ""
-                              }
+                                  ? "bg-linear-to-r from-emerald-600 to-teal-600 shadow-md shadow-emerald-500/20 hover:shadow-lg"
+                                  : "hover:border-emerald-300 hover:bg-emerald-50"
+                              }`}
                             >
                               {species}
                             </Button>
@@ -287,7 +521,7 @@ export default function HomePage() {
                           Object.keys(genomesByOrganism).length === 0
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-slate-200 focus:border-emerald-300 focus:ring-emerald-200">
                           <SelectValue placeholder="Select organism" />
                         </SelectTrigger>
                         <SelectContent>
@@ -309,7 +543,7 @@ export default function HomePage() {
                         onValueChange={handleGenomeChange}
                         disabled={isLoading || genomes.length === 0}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-slate-200 focus:border-emerald-300 focus:ring-emerald-200">
                           <SelectValue placeholder="Select genome assembly" />
                         </SelectTrigger>
 
@@ -328,8 +562,8 @@ export default function HomePage() {
                       </Select>
 
                       {selectedGenome && (
-                        <div className="rounded-md bg-slate-100 p-3 text-xs text-slate-600">
-                          Source:{" "}
+                        <div className="rounded-lg border border-emerald-100 bg-linear-to-r from-emerald-50 to-teal-50 p-3 text-xs text-emerald-700">
+                          <span className="font-medium">Source:</span>{" "}
                           {
                             genomes.find((g) => g.id === selectedGenome)
                               ?.sourceName
@@ -339,25 +573,36 @@ export default function HomePage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </MotionDiv>
 
               {/* Right Panel: Interactive Area */}
-              <div className="space-y-6 lg:col-span-8">
+              <MotionDiv
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="space-y-6 lg:col-span-8"
+              >
                 <div className="flex items-center gap-2 pb-2">
-                  <div className="h-6 w-1 rounded-full bg-emerald-500" />
+                  <div className="h-6 w-1 rounded-full bg-linear-to-b from-cyan-500 to-blue-500" />
                   <h2 className="text-xl font-semibold text-slate-900">
                     Exploration
                   </h2>
                 </div>
 
-                <Card className="min-h-[400px] border-slate-200 shadow-sm transition-shadow hover:shadow-md">
-                  <CardHeader>
+                <Card className="min-h-[400px] border-slate-200/80 bg-white/80 shadow-lg shadow-slate-200/50 backdrop-blur-sm transition-all hover:shadow-xl hover:shadow-slate-200/60">
+                  <CardHeader className="pb-4">
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-base">
-                        <Activity className="h-4 w-4 text-slate-500" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-100 to-blue-100">
+                          <Activity className="h-4 w-4 text-cyan-600" />
+                        </div>
                         Browser Interface
                       </div>
                     </CardTitle>
+                    <CardDescription>
+                      Browse chromosomes or search genes in the selected genome.
+                    </CardDescription>
                   </CardHeader>
 
                   <CardContent>
@@ -366,131 +611,44 @@ export default function HomePage() {
                       onValueChange={(value) => switchMode(value as Mode)}
                       className="w-full"
                     >
-                      <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+                      <TabsList className="w-full justify-start gap-1 rounded-lg border border-slate-200 bg-slate-100/80 p-1">
                         <TabsTrigger
                           value="browse"
-                          className="relative rounded-none border-b-2 border-transparent px-4 pt-2 pb-3 font-medium text-slate-500 hover:text-slate-700 data-[state=active]:border-slate-900 data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
+                          className="rounded-md px-4 py-2 font-medium text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
                         >
                           Chromosomes
                         </TabsTrigger>
                         <TabsTrigger
                           value="search"
-                          className="relative rounded-none border-b-2 border-transparent px-4 pt-2 pb-3 font-medium text-slate-500 hover:text-slate-700 data-[state=active]:border-slate-900 data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
+                          className="rounded-md px-4 py-2 font-medium text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
                         >
                           Gene Search
                         </TabsTrigger>
                       </TabsList>
 
                       <div className="mt-6">
-                        <TabsContent
-                          value="search"
-                          className="animate-in fade-in-50 m-0 duration-300"
-                        >
-                          <form
-                            onSubmit={handleSearchQuery}
-                            className="space-y-4"
-                          >
-                            <div className="flex gap-3">
-                              <div className="relative flex-1">
-                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                  type="text"
-                                  placeholder="Enter gene symbol (e.g. BRCA1)"
-                                  value={searchQuery}
-                                  onChange={(e) =>
-                                    setSearchQuery(e.target.value)
-                                  }
-                                  className="pl-10"
-                                />
-                              </div>
-                              <Button
-                                type="submit"
-                                className="bg-slate-900 text-white hover:bg-slate-800"
-                                disabled={isLoading || !searchQuery.trim()}
-                              >
-                                Search
-                              </Button>
-                            </div>
-                          </form>
-
-                          <div className="mt-8 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
-                              <Search className="h-6 w-6 text-slate-400" />
-                            </div>
-                            <h3 className="mt-4 text-sm font-semibold text-slate-900">
-                              No search active
-                            </h3>
-                            <p className="mt-2 text-sm text-slate-500">
-                              Search for a gene to view detailed variant
-                              analysis or
-                            </p>
-                            <Button
-                              variant="link"
-                              className="mt-2 h-auto p-0 text-emerald-600 hover:text-emerald-700"
-                              onClick={loadBRCA1Example}
-                            >
-                              load BRCA1 example
-                            </Button>
-                          </div>
+                        <TabsContent value="search" className="m-0">
+                          <GeneSearchTab
+                            isLoading={isLoading}
+                            searchResults={geneSearchResults}
+                            onSearch={(query) =>
+                              performGeneSearch(query, selectedGenome)
+                            }
+                            onGeneClick={handleGeneClick}
+                          />
                         </TabsContent>
 
-                        <TabsContent
-                          value="browse"
-                          className="animate-in fade-in-50 m-0 duration-300"
-                        >
-                          <div className="space-y-6">
-                            <div className="flex flex-wrap gap-2">
-                              {chromosomes
-                                .filter((chrom) => chrom.name.startsWith("chr"))
-                                .map((chrom) => (
-                                  <Button
-                                    key={chrom.name}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      setselectedChromosomes(chrom.name)
-                                    }
-                                    className={`transition-all ${
-                                      selectedChromosomes === chrom.name
-                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                        : "hover:border-slate-300 hover:bg-slate-50"
-                                    }`}
-                                  >
-                                    {chrom.name.replace("chr", "")}
-                                  </Button>
-                                ))}
-                            </div>
-
-                            {selectedChromosomes && (
-                              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                                <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-                                  <div className="flex items-center justify-between">
-                                    <h3 className="font-medium text-slate-900">
-                                      Chromosome View:{" "}
-                                      <span className="text-emerald-600">
-                                        {selectedChromosomes}
-                                      </span>
-                                    </h3>
-                                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                                      Visualizer Ready
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex h-64 items-center justify-center p-6 text-sm text-slate-500">
-                                  Chromosome visualization component would
-                                  render here
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                        <TabsContent value="browse" className="m-0">
+                          <ChromosomeBrowserTab
+                            chromosomes={chromosomes}
+                            selectedChromosome={selectedChromosomes}
+                            onSelectChromosome={setselectedChromosomes}
+                            geneResults={geneSearchResults}
+                            isLoading={isLoading}
+                            onGeneClick={handleGeneClick}
+                          />
                         </TabsContent>
                       </div>
-
-                      {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900"></div>
-                        </div>
-                      )}
 
                       {error && (
                         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -500,45 +658,43 @@ export default function HomePage() {
                     </Tabs>
                   </CardContent>
                 </Card>
-              </div>
+
+                {/* Gene Detail Dialog */}
+                <GeneDetailDialog
+                  gene={selectedGene}
+                  open={dialogOpen}
+                  onOpenChange={setDialogOpen}
+                />
+              </MotionDiv>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-12">
+      <footer className="border-t border-slate-200 bg-linear-to-b from-white to-slate-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-900 text-xs text-white">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-md shadow-emerald-500/20">
                 GL
               </div>
-              <p className="text-sm text-slate-500">
-                Built with ❤️ by Jarvis Zhang. © 2025.
-              </p>
+              <div>
+                <p className="text-sm font-medium text-slate-700">GeneLM</p>
+                <p className="text-xs text-slate-500">
+                  Built with ❤️ by Jarvis Zhang © 2025
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="link"
-                asChild
-                className="h-auto px-0 text-slate-500 hover:text-slate-900"
+            <div className="flex items-center gap-4">
+              <a
+                href="https://github.com/JarvisZhang24"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-slate-900"
               >
-                <a href="#">GitHub</a>
-              </Button>
-              <Button
-                variant="link"
-                asChild
-                className="h-auto px-0 text-slate-500 hover:text-slate-900"
-              >
-                <a href="#">LinkedIn</a>
-              </Button>
-              <Button
-                variant="link"
-                asChild
-                className="h-auto px-0 text-slate-500 hover:text-slate-900"
-              >
-                <a href="#">Twitter</a>
-              </Button>
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
             </div>
           </div>
         </div>

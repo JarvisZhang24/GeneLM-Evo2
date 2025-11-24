@@ -1,9 +1,10 @@
 export interface SingleGeneInfo {
   symbol: string;
-  name: string;
   chrom: string;
   description: string;
   gene_id?: string;
+  HGNC_ID : string;
+  type_of_gene : string
 }
 
 export async function getGenes(query: string, genome: string) {
@@ -25,6 +26,40 @@ export async function getGenes(query: string, genome: string) {
   const genesResult: SingleGeneInfo[] = [];
 
 	if(genesData[0] > 0){
+    const fieldMap = genesData[2]
+
+    const geneIds = fieldMap.GeneID || []
+
+    for (let i = 0; i < Math.min(10 , genesData[0]) ; ++i){
+      if (i < genesData[3].length){
+        try {
+          const geneData = genesData[3][i]
+
+          let chrom = geneData[0]
+
+          if(chrom && !chrom.startsWith("chr")){
+            chrom = `chr${chrom}`
+          }
+
+          genesResult.push({
+            symbol : geneData[3],
+            HGNC_ID : geneData[2],
+            chrom,
+            description: geneData[4],
+            gene_id : geneData[1] || '',
+            type_of_gene : geneData[5] 
+          }) 
+
+        } catch {
+          continue
+          
+        }
+
+      }
+    }
 		
 	}
+
+  return {query , genome , genesResult}
+
 }
