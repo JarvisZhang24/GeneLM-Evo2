@@ -11,6 +11,8 @@ import { fetchGeneDetails,
 import {fetchGeneSequence as apiFetchGeneSequence} from "~/utils/gene-sequence-api";
 import { setServers } from "dns";
 import { ApiError } from "next/dist/server/api-utils";
+import { GeneInformation } from "./gene-information";
+import { GeneSequence } from "./gene-sequence";
 
 export default function GeneViewer({
   gene,
@@ -52,7 +54,7 @@ export default function GeneViewer({
           setError(apiError)
         }
 
-        console.log(sequence)
+        //console.log(sequence)
 
       } catch (error) {
 
@@ -101,7 +103,7 @@ export default function GeneViewer({
 
           // fetch gene Sequence
           await fetchGeneSequence(fetchedGeneRange.start , fetchedGeneRange.end)
-          console.log(fetchedGeneDeatils)
+          //console.log(fetchedGeneDeatils)
         }
 
       } catch (error) {
@@ -126,6 +128,30 @@ export default function GeneViewer({
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to results
       </Button>
+
+      <GeneInformation gene={gene}  geneDetail={geneDetail} geneBounds={geneBounds}/>
+
+      <GeneSequence 
+      geneBounds={geneBounds} 
+      geneDetail={geneDetail} 
+      startPosition= {startPosition} 
+      endPosition={endPosition} 
+      onStartPositionChange={setStartPosition} 
+      onEndPositionChange={setEndPosition} 
+       
+      sequenceData={geneSequence} 
+      sequenceRange={actualRange} 
+      isLoading={isLoadingSequence} 
+      error={error} 
+      onSequenceLoadRequest={function (): void {
+        throw new Error("Function not implemented.");
+      } } 
+      onSequenceClick={function (position: number, nucleotide: string): void {
+        throw new Error("Function not implemented.");
+      } } 
+      maxViewRange={10000} />
+
+      
     </div>
   );
 }
