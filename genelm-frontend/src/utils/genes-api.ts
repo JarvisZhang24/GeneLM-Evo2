@@ -1,9 +1,8 @@
 export interface SingleGeneInfo {
   symbol: string;
-  chrom: string;
+  chromsome: string;
   description: string;
-  gene_id?: string;
-  HGNC_ID : string;
+  gene_id: string;
   type_of_gene : string
 }
 
@@ -42,12 +41,11 @@ export async function getGenes(query: string, genome: string) {
           }
 
           genesResult.push({
-            symbol : geneData[3],
-            HGNC_ID : geneData[2],
-            chrom,
-            description: geneData[4],
-            gene_id : geneData[1] || '',
-            type_of_gene : geneData[5] 
+            chromsome : chrom,
+            gene_id :geneIds[i] ||"",
+            symbol : geneData[1],
+            description:geneData[2],
+            type_of_gene:geneData[4]
           }) 
 
         } catch {

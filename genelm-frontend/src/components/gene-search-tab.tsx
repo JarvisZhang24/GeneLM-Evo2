@@ -177,7 +177,7 @@ export function GeneSearchTab({
               <TableHeader>
                 <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
                   <TableHead className="w-[150px] font-semibold text-slate-900">
-                    Gene HGNC_ID
+                    Gene ID
                   </TableHead>
                   <TableHead className="w-[120px] font-semibold text-slate-900">
                     Chromosome
@@ -197,11 +197,12 @@ export function GeneSearchTab({
                     className="cursor-pointer transition-colors hover:bg-emerald-50/50"
                     onClick={() => onGeneClick(gene)}
                   >
+                    
                     <TableCell className="font-semibold text-emerald-700">
-                      {gene.HGNC_ID}
+                      {gene.gene_id}
                     </TableCell>
                     <TableCell className="text-slate-600">
-                      {gene.chrom}
+                      {gene.chromsome}
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {gene.type_of_gene}

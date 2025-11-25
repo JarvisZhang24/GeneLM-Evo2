@@ -121,8 +121,9 @@ export function ChromosomeBrowserTab({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                      
                       <TableHead className="w-[150px] font-semibold text-slate-900">
-                        Gene HGNC_ID
+                        Gene ID
                       </TableHead>
                       <TableHead className="w-[120px] font-semibold text-slate-900">
                         Chromosome
@@ -141,12 +142,12 @@ export function ChromosomeBrowserTab({
                         key={`${gene.symbol}-${index}`}
                         className="group cursor-pointer transition-colors hover:bg-emerald-50/50"
                         onClick={() => onGeneClick(gene)}
-                      >
+                      >                       
                         <TableCell className="font-semibold text-emerald-700 group-hover:text-emerald-800">
-                          {gene.HGNC_ID}
+                          {gene.gene_id}
                         </TableCell>
                         <TableCell className="text-slate-600">
-                          {gene.chrom}
+                          {gene.chromsome}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate text-xs text-slate-600">
                           {gene.description || "-"}

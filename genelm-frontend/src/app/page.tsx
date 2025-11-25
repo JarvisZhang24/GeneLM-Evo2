@@ -158,7 +158,7 @@ export default function HomePage() {
     performGeneSearch(
       selectedChromosomes,
       selectedGenome,
-      (gene: SingleGeneInfo) => gene.chrom === selectedChromosomes,
+      (gene: SingleGeneInfo) => gene.chromsome === selectedChromosomes,
     );
   }, [selectedChromosomes, selectedGenome, mode]);
 
@@ -200,7 +200,7 @@ export default function HomePage() {
       performGeneSearch(
         selectedChromosomes,
         selectedGenome,
-        (gene: SingleGeneInfo) => gene.chrom === selectedChromosomes,
+        (gene: SingleGeneInfo) => gene.chromsome === selectedChromosomes,
       );
     }
 
@@ -258,15 +258,13 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-3 md:flex">
+            <div className="hidden items-center gap-3 md:flex">                          
               <a
-                href="https://github.com/JarvisZhang24"
+                href="https://github.com/JarvisZhang24/GeneLM-Evo2"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
-              >
-                <Github className="h-5 w-5" />
-              </a>
+              >                        
               <Button
                 size="sm"
                 className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
@@ -274,6 +272,7 @@ export default function HomePage() {
                 <Sparkles className="mr-1.5 h-4 w-4" />
                 View Source
               </Button>
+              </a>
             </div>
             <Button
               variant="ghost"
