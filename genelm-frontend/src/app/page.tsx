@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Card,
   CardHeader,
@@ -48,6 +48,217 @@ import { GeneDetailDialog } from "~/components/gene-detail-dialog";
 type Mode = "browse" | "search";
 
 const MotionDiv = motion.div;
+
+// DNA Helix Animation Component
+function DNAHelix() {
+  return (
+    <div className="absolute inset-0 overflow-hidden opacity-20">
+      <div className="absolute top-0 left-1/4 h-full w-px">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={`left-${i}`}
+            className="absolute h-3 w-3 rounded-full bg-emerald-500"
+            style={{ top: `${i * 5}%` }}
+            animate={{
+              x: [0, 30, 0, -30, 0],
+              scale: [1, 1.2, 1, 1.2, 1],
+            }}
+            transition={{
+              duration: 3,
+              delay: i * 0.15,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+      <div className="absolute top-0 right-1/4 h-full w-px">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={`right-${i}`}
+            className="absolute h-3 w-3 rounded-full bg-teal-500"
+            style={{ top: `${i * 5}%` }}
+            animate={{
+              x: [0, -30, 0, 30, 0],
+              scale: [1, 1.2, 1, 1.2, 1],
+            }}
+            transition={{
+              duration: 3,
+              delay: i * 0.15,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+      {/* Connecting lines */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={`line-${i}`}
+          className="absolute left-1/4 h-px bg-linear-to-r from-emerald-400 to-teal-400"
+          style={{
+            top: `${i * 5}%`,
+            width: "50%",
+          }}
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{
+            duration: 2,
+            delay: i * 0.1,
+            repeat: Infinity,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Floating Particles - use seeded positions to avoid hydration mismatch
+function FloatingParticles() {
+  const [particles, setParticles] = useState<
+    Array<{ left: number; top: number; duration: number; delay: number }>
+  >([]);
+
+  useEffect(() => {
+    // Generate random positions only on client side
+    setParticles(
+      [...Array(30)].map(() => ({
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        duration: 3 + Math.random() * 2,
+        delay: Math.random() * 2,
+      })),
+    );
+  }, []);
+
+  if (particles.length === 0) return null;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {particles.map((particle, i) => (
+        <motion.div
+          key={i}
+          className="absolute h-1 w-1 rounded-full bg-emerald-400/40"
+          style={{
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
+          }}
+          animate={{
+            y: [-20, 20, -20],
+            x: [-10, 10, -10],
+            opacity: [0.2, 0.8, 0.2],
+          }}
+          transition={{
+            duration: particle.duration,
+            delay: particle.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Animated Counter
+function AnimatedCounter({
+  value,
+  suffix = "",
+}: {
+  value: number;
+  suffix?: string;
+}) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [isVisible, value]);
+
+  return (
+    <span ref={ref} className="tabular-nums">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+// Typewriter Effect
+function TypewriterText({ texts }: { texts: string[] }) {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentFullText = texts[currentTextIndex] || "";
+    const timeout = setTimeout(
+      () => {
+        if (!isDeleting) {
+          if (displayText.length < currentFullText.length) {
+            setDisplayText(currentFullText.slice(0, displayText.length + 1));
+          } else {
+            setTimeout(() => setIsDeleting(true), 2000);
+          }
+        } else {
+          if (displayText.length > 0) {
+            setDisplayText(displayText.slice(0, -1));
+          } else {
+            setIsDeleting(false);
+            setCurrentTextIndex((prev) => (prev + 1) % texts.length);
+          }
+        }
+      },
+      isDeleting ? 50 : 100,
+    );
+
+    return () => clearTimeout(timeout);
+  }, [displayText, isDeleting, currentTextIndex, texts]);
+
+  return (
+    <span className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+      {displayText}
+      <motion.span
+        animate={{ opacity: [1, 0] }}
+        transition={{ duration: 0.5, repeat: Infinity }}
+        className="ml-1 inline-block h-[1em] w-[3px] bg-emerald-500 align-middle"
+      />
+    </span>
+  );
+}
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -258,20 +469,20 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-3 md:flex">                          
+            <div className="hidden items-center gap-3 md:flex">
               <a
                 href="https://github.com/JarvisZhang24/GeneLM-Evo2"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
-              >                        
-              <Button
-                size="sm"
-                className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
               >
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                View Source
-              </Button>
+                <Button
+                  size="sm"
+                  className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
+                >
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                  View Source
+                </Button>
               </a>
             </div>
             <Button
@@ -325,7 +536,11 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-linear-to-b from-white via-slate-50/50 to-slate-50 pt-20 pb-16 lg:pt-28 lg:pb-28">
-          <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          {/* DNA Helix Background */}
+          <DNAHelix />
+          <FloatingParticles />
+
+          <div className="relative z-10 mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
             <MotionDiv
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -348,9 +563,14 @@ export default function HomePage() {
             >
               <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
                 Genomic Intelligence <br className="hidden sm:block" />
-                <span className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                  Powered by Stanford Evo2
-                </span>
+                <TypewriterText
+                  texts={[
+                    "Powered by Evo2",
+                    "Variant Analysis",
+                    "Zero-Shot Prediction",
+                    "DNA Language Model",
+                  ]}
+                />
               </h1>
             </MotionDiv>
 
@@ -390,7 +610,7 @@ export default function HomePage() {
                 asChild
               >
                 <a
-                  href="https://github.com/JarvisZhang24"
+                  href="https://github.com/JarvisZhang24/GeneLM-Evo2"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -399,25 +619,79 @@ export default function HomePage() {
               </Button>
             </MotionDiv>
 
-            {/* Feature Pills */}
+            {/* Stats Section */}
             <MotionDiv
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-8"
+            >
+              {[
+                { value: 7, suffix: "B", label: "Model Parameters" },
+                { value: 8192, suffix: "", label: "Context Window" },
+                { value: 95, suffix: "%", label: "AUROC on BRCA1" },
+                { value: 24, suffix: "+", label: "Genome Assemblies" },
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-lg backdrop-blur-sm transition-all hover:border-emerald-300 hover:shadow-xl sm:p-6"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                >
+                  <div className="absolute inset-0 bg-linear-to-br from-emerald-50/50 to-teal-50/50 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="relative">
+                    <div className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                      <AnimatedCounter
+                        value={stat.value}
+                        suffix={stat.suffix}
+                      />
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 sm:text-sm">
+                      {stat.label}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </MotionDiv>
+
+            {/* Feature Pills */}
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
               className="mt-12 flex flex-wrap items-center justify-center gap-3"
             >
               {[
-                { icon: Zap, label: "Real-time Analysis" },
-                { icon: Database, label: "Multi-genome Support" },
-                { icon: Dna, label: "Gene Browser" },
-              ].map((feature) => (
-                <div
+                {
+                  icon: Zap,
+                  label: "Real-time Analysis",
+                  color: "text-yellow-500",
+                },
+                {
+                  icon: Database,
+                  label: "Multi-genome Support",
+                  color: "text-blue-500",
+                },
+                { icon: Dna, label: "Gene Browser", color: "text-emerald-500" },
+                {
+                  icon: Cpu,
+                  label: "H100 GPU Powered",
+                  color: "text-purple-500",
+                },
+              ].map((feature, index) => (
+                <motion.div
                   key={feature.label}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm"
+                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-sm backdrop-blur-sm transition-all hover:border-emerald-300 hover:shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.9 + index * 0.1 }}
                 >
-                  <feature.icon className="h-4 w-4 text-emerald-500" />
+                  <feature.icon className={`h-4 w-4 ${feature.color}`} />
                   {feature.label}
-                </div>
+                </motion.div>
               ))}
             </MotionDiv>
           </div>
