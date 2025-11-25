@@ -197,7 +197,6 @@ export function GeneSearchTab({
                     className="cursor-pointer transition-colors hover:bg-emerald-50/50"
                     onClick={() => onGeneClick(gene)}
                   >
-                    
                     <TableCell className="font-semibold text-emerald-700">
                       {gene.gene_id}
                     </TableCell>

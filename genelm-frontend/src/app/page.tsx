@@ -470,20 +470,20 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-3 md:flex">
-              <a
-                href="https://github.com/JarvisZhang24/GeneLM-Evo2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
+              <Button
+                asChild
+                size="sm"
+                className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
               >
-                <Button
-                  size="sm"
-                  className="bg-linear-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30"
+                <a
+                  href="https://github.com/JarvisZhang24/GeneLM-Evo2"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Sparkles className="mr-1.5 h-4 w-4" />
                   View Source
-                </Button>
-              </a>
+                </a>
+              </Button>
             </div>
             <Button
               variant="ghost"
@@ -937,6 +937,7 @@ export default function HomePage() {
                   gene={selectedGene}
                   open={dialogOpen}
                   onOpenChange={setDialogOpen}
+                  genomeId={selectedGenome}  // 新增
                 />
               </MotionDiv>
             </div>

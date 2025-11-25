@@ -2,7 +2,7 @@ export interface SingleGeneInfo {
   symbol: string;
   chromsome: string;
   description: string;
-  gene_id: string;
+  gene_id?: string;
   type_of_gene : string
 }
 
@@ -61,3 +61,5 @@ export async function getGenes(query: string, genome: string) {
   return {query , genome , genesResult}
 
 }
+
+

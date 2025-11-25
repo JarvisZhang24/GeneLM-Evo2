@@ -24,12 +24,14 @@ interface GeneDetailDialogProps {
   gene: SingleGeneInfo | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  genomeId?: string;  // 新增
 }
 
 export function GeneDetailDialog({
   gene,
   open,
   onOpenChange,
+  genomeId,  // 新增
 }: GeneDetailDialogProps) {
   const [copied, setCopied] = useState(false);
 
@@ -100,7 +102,7 @@ export function GeneDetailDialog({
           {/* Copy Gene ID */}
           {gene.gene_id && (
             <button
-              onClick={() => copyToClipboard(gene.gene_id)}
+              onClick={() => copyToClipboard(String(gene.gene_id))}
               className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50"
             >
               <div className="flex items-center gap-2">
@@ -156,6 +158,10 @@ export function GeneDetailDialog({
           <Button
             className="flex-1 bg-linear-to-r from-emerald-600 to-teal-600 text-white"
             onClick={() => {
+              sessionStorage.setItem("selectedGene", JSON.stringify(gene));
+              if (genomeId) {
+                sessionStorage.setItem("selectedGenomeId", genomeId);  // 新增
+              }
               window.location.href = `/gene/${gene.gene_id}`;
             }}
           >

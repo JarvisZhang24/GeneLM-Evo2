@@ -129,10 +129,10 @@ export function ChromosomeBrowserTab({
                         Chromosome
                       </TableHead>
                       <TableHead className="font-semibold text-slate-900">
-                        Description
+                        Type                       
                       </TableHead>
                       <TableHead className="font-semibold text-slate-900">
-                        Type
+                        Description
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -149,14 +149,15 @@ export function ChromosomeBrowserTab({
                         <TableCell className="text-slate-600">
                           {gene.chromsome}
                         </TableCell>
-                        <TableCell className="max-w-[300px] truncate text-xs text-slate-600">
-                          {gene.description || "-"}
-                        </TableCell>
                         <TableCell>
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                             {gene.type_of_gene}
                           </span>
                         </TableCell>
+                        <TableCell className="max-w-[300px] truncate text-xs text-slate-600">
+                          {gene.description || "-"}
+                        </TableCell>
+                        
                       </TableRow>
                     ))}
                   </TableBody>
