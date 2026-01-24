@@ -45,7 +45,7 @@ export default function GeneAnalysisPage() {
     setGene({
       gene_id: geneId,
       symbol: "",
-      chromsome: "",
+      chromosome: "",
       description: "",
       type_of_gene: "",
     });

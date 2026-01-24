@@ -44,7 +44,7 @@ export function GeneSearchTab({
 
   return (
     <div className="animate-in fade-in-50 duration-300">
-      <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-8 rounded-xl border border-slate-200/70 bg-white p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
           <div className="flex flex-col gap-4">
             <div className="mb-2 text-center">
@@ -63,13 +63,13 @@ export function GeneSearchTab({
                   placeholder="Enter gene symbol (e.g. BRCA1, TP53)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-12 border-slate-200 pl-12 text-base shadow-sm focus-visible:ring-emerald-500"
+                  className="h-12 border-slate-200 pl-12 text-base shadow-sm focus-visible:ring-[#3c4f3d]"
                 />
               </div>
               <Button
                 type="submit"
                 size="lg"
-                className="h-12 bg-linear-to-r from-emerald-600 to-teal-600 px-8 font-medium text-white shadow-md shadow-emerald-500/20 transition-all hover:shadow-lg hover:shadow-emerald-500/30 disabled:opacity-50"
+                className="h-12 bg-[#3c4f3d] px-8 font-medium text-white shadow-sm transition-colors hover:bg-[#2d3f2e] disabled:opacity-50"
                 disabled={isLoading || !searchQuery.trim()}
               >
                 {isLoading ? (
@@ -136,8 +136,8 @@ export function GeneSearchTab({
       {/* Empty State */}
       {searchResults.length === 0 && !isLoading && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 rounded-full bg-linear-to-br from-emerald-50 to-teal-50 p-5">
-            <Dna className="h-10 w-10 text-emerald-400" />
+          <div className="mb-4 rounded-full bg-slate-100 p-5">
+            <Dna className="h-10 w-10 text-[#3c4f3d]/40" />
           </div>
           <h3 className="text-lg font-semibold text-slate-900">
             {searchQuery ? "No genes found" : "Start exploring"}
@@ -150,7 +150,7 @@ export function GeneSearchTab({
           {!searchQuery && (
             <Button
               variant="outline"
-              className="mt-6 border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+              className="mt-6 border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
               onClick={loadExample}
             >
               <Activity className="mr-2 h-4 w-4" />
@@ -166,7 +166,7 @@ export function GeneSearchTab({
           <div className="flex items-center justify-between px-1">
             <h3 className="text-sm font-medium text-slate-700">
               Found{" "}
-              <span className="font-bold text-emerald-600">
+              <span className="font-bold text-[#3c4f3d]">
                 {searchResults.length}
               </span>{" "}
               results
@@ -194,14 +194,14 @@ export function GeneSearchTab({
                 {searchResults.map((gene, index) => (
                   <TableRow
                     key={`${gene.symbol}-${index}`}
-                    className="cursor-pointer transition-colors hover:bg-emerald-50/50"
+                    className="cursor-pointer transition-colors hover:bg-slate-50"
                     onClick={() => onGeneClick(gene)}
                   >
-                    <TableCell className="font-semibold text-emerald-700">
+                    <TableCell className="font-semibold text-[#3c4f3d]">
                       {gene.gene_id}
                     </TableCell>
                     <TableCell className="text-slate-600">
-                      {gene.chromsome}
+                      {gene.chromosome}
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {gene.type_of_gene}

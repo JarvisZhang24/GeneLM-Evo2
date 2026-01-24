@@ -24,14 +24,14 @@ interface GeneDetailDialogProps {
   gene: SingleGeneInfo | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  genomeId?: string;  // 新增
+  genomeId?: string; // 新增
 }
 
 export function GeneDetailDialog({
   gene,
   open,
   onOpenChange,
-  genomeId,  // 新增
+  genomeId, // 新增
 }: GeneDetailDialogProps) {
   const [copied, setCopied] = useState(false);
 
@@ -46,7 +46,7 @@ export function GeneDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-slate-200 bg-white p-0">
-        <DialogHeader className="sticky top-0 z-10 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4">
+        <DialogHeader className="sticky top-0 z-10 border-b border-slate-100 bg-linear-to-r from-emerald-50 to-teal-50 px-6 py-4">
           <DialogTitle className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
               <Dna className="h-5 w-5 text-emerald-600" />
@@ -80,7 +80,7 @@ export function GeneDetailDialog({
                 </span>
               </div>
               <p className="text-lg font-bold text-slate-900">
-                {gene.chromsome}
+                {gene.chromosome}
               </p>
             </div>
 
@@ -160,7 +160,7 @@ export function GeneDetailDialog({
             onClick={() => {
               sessionStorage.setItem("selectedGene", JSON.stringify(gene));
               if (genomeId) {
-                sessionStorage.setItem("selectedGenomeId", genomeId);  // 新增
+                sessionStorage.setItem("selectedGenomeId", genomeId); // 新增
               }
               window.location.href = `/gene/${gene.gene_id}`;
             }}
