@@ -28,20 +28,31 @@ export function GeneInformation({
 
   return (
     <div>
-      <Card className="overflow-hidden border-slate-200/70 bg-white shadow-sm">
-        {/* Header: icon + symbol */}
-        <div className="border-b border-slate-200/60 bg-linear-to-b from-white to-slate-50/60 px-6 py-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#3c4f3d] text-white shadow-sm ring-1 ring-[#3c4f3d]/10">
+      <Card className="relative overflow-hidden border-emerald-200/70 bg-white shadow-lg ring-1 ring-emerald-100/60">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
+        <div className="border-b border-emerald-200/60 bg-linear-to-b from-white via-emerald-50/30 to-white px-6 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#203123] text-white shadow-md ring-1 ring-[#203123]/20">
                 <Dna className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-[#203123] px-2 py-0.5 text-[10px] font-black tracking-widest text-white uppercase">
+                    Evo2 Target
+                  </span>
+                  {gene.type_of_gene ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <Tag className="h-3 w-3 text-emerald-400" />
+                      {gene.type_of_gene}
+                    </span>
+                  ) : null}
+                </div>
+                <h1 className="mt-2 text-lg font-black tracking-tight text-slate-900">
                   {gene.symbol || "Unknown Gene"}
                 </h1>
                 {gene.description ? (
-                  <p className="mt-0.5 text-xs font-medium text-slate-600">
+                  <p className="mt-1 text-xs font-medium text-slate-600">
                     {gene.description}
                   </p>
                 ) : null}
@@ -50,8 +61,8 @@ export function GeneInformation({
 
             <div className="flex flex-wrap items-center gap-2">
               {gene.gene_id ? (
-                <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700">
-                  <Hash className="h-3.5 w-3.5 text-slate-400" />
+                <span className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-emerald-800">
+                  <Hash className="h-3.5 w-3.5 text-emerald-400" />
                   {gene.gene_id}
                 </span>
               ) : null}
@@ -61,18 +72,33 @@ export function GeneInformation({
                   {gene.chromosome}
                 </span>
               ) : null}
-              {gene.type_of_gene ? (
-                <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-                  <Tag className="h-3.5 w-3.5 text-slate-400" />
-                  {gene.type_of_gene}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>
         {/* Description strip */}
         {gene.description && null}
         <CardContent className="space-y-5 p-6">
+          <div className="rounded-2xl border border-emerald-200/60 bg-linear-to-r from-emerald-50 via-white to-lime-50 px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                  Evo2 Gene Context
+                </p>
+                <p className="text-xs font-semibold text-slate-600">
+                  Gene metadata powering Evo2 variant analysis and sequence
+                  exploration.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white px-3 py-2">
+                <Dna className="h-4 w-4 text-emerald-700" />
+                <span className="text-xs font-semibold text-slate-800">
+                  {geneBounds
+                    ? `${geneLengthBp?.toLocaleString()} bp`
+                    : "Bounds pending"}
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-slate-200/70 bg-white p-4">
               <div className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">

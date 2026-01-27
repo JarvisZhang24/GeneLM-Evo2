@@ -72,7 +72,6 @@ export default function KnownVariants({
     v.variation_type?.toLowerCase().includes("single nucleotide"),
   ).length;
 
-
   const analyzeVariant = async (variant: ClinvarVariant) => {
     let variantDetails = null;
     const position = variant.location
@@ -128,38 +127,67 @@ export default function KnownVariants({
       });
     }
   };
-    
-
 
   return (
-    <Card className="overflow-hidden border-slate-200/70 bg-white shadow-sm">
-      {/* Professional Header */}
-      <div className="border-b border-slate-200/60 bg-linear-to-b from-white to-slate-50/60 px-6 py-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#3c4f3d] text-white shadow-sm ring-1 ring-[#3c4f3d]/10">
-              <Database className="h-6 w-6" />
+    <Card className="relative overflow-hidden border-emerald-200/70 bg-white shadow-lg ring-1 ring-emerald-100/60">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
+      {/* Evo2 Spotlight Header */}
+      <div className="border-b border-emerald-200/60 bg-linear-to-b from-white via-emerald-50/30 to-white px-6 py-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[#203123] text-white shadow-md ring-1 ring-[#203123]/20">
+              <Zap className="h-6 w-6" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight text-[#3c4f3d]">
-                ClinVar Variant Database
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="border-none bg-[#203123] px-2 py-0 text-[10px] font-black tracking-widest text-white uppercase">
+                  Evo2 Core
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-emerald-200/70 bg-white px-2 py-0 text-[10px] font-semibold text-emerald-700"
+                >
+                  ClinVar curated
+                </Badge>
+              </div>
+              <h2 className="text-xl font-black tracking-tight text-[#1f2f20]">
+                Evo2 Variant Intelligence
               </h2>
-              <div className="mt-1 flex items-center gap-3">
+              <p className="text-xs font-semibold text-slate-600">
+                Large-model inference for clinically curated SNVs with instant
+                comparison.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
                 <Badge
                   variant="outline"
                   className="border-emerald-200/60 bg-white px-2 py-0 font-semibold text-emerald-700"
                 >
                   {gene.symbol || "Unknown Gene"}
                 </Badge>
-                <span className="flex items-center gap-1 text-xs font-medium text-slate-500">
-                  <Activity className="h-3 w-3" />
-                  Known clinical variants
+                <span className="flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  ClinVar evidence
+                </span>
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {snvCount} SNVs ready
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50 px-4 py-2.5 text-center">
+              <span className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                Evo2 Ready
+              </span>
+              <div className="font-mono text-lg font-black text-emerald-700">
+                {snvCount}
+              </div>
+              <div className="text-[10px] font-semibold text-emerald-700/70">
+                SNVs
+              </div>
+            </div>
             <div className="flex flex-col items-center rounded-xl bg-slate-100/70 px-4 py-2">
               <span className="text-[10px] font-bold tracking-widest text-[#3c4f3d]/60 uppercase">
                 Total
@@ -173,7 +201,7 @@ export default function KnownVariants({
               size="sm"
               onClick={refreshVariants}
               disabled={isLoading}
-              className="h-9 cursor-pointer border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+              className="h-9 cursor-pointer border-emerald-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -187,6 +215,60 @@ export default function KnownVariants({
       </div>
 
       <CardContent className="p-6">
+        <div className="mb-6 rounded-2xl border border-emerald-200/60 bg-linear-to-r from-emerald-50 via-white to-lime-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                <Zap className="h-3.5 w-3.5" />
+                Evo2 Large Model Analysis
+              </div>
+              <h3 className="mt-2 text-base font-black text-slate-900">
+                Instant pathogenicity prediction for ClinVar SNVs
+              </h3>
+              <p className="mt-1 max-w-xl text-xs font-semibold text-slate-600">
+                Prioritize high-risk variants, compare against ClinVar labels,
+                and surface Evo2 predictions in one view.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge
+                  variant="secondary"
+                  className="border-none bg-emerald-100/70 text-[10px] font-semibold text-emerald-700"
+                >
+                  SNV-ready: {snvCount}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className="border-none bg-slate-100 text-[10px] font-semibold text-slate-600"
+                >
+                  AI confidence tiers
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className="border-none bg-slate-100 text-[10px] font-semibold text-slate-600"
+                >
+                  ClinVar vs Evo2 comparison
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-emerald-200/70 bg-white/80 px-4 py-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#203123] text-white">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                  Evo2 Engine
+                </p>
+                <p className="text-sm font-bold text-slate-900">
+                  One-click AI analysis
+                </p>
+                <p className="text-[11px] font-semibold text-slate-600">
+                  {snvCount} SNVs ready now
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Statistics Cards */}
         {variants.length > 0 && (
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -377,7 +459,7 @@ export default function KnownVariants({
                           !variant.evo2Result ? (
                             <Button
                               size="sm"
-                              className="h-9 cursor-pointer bg-[#3c4f3d] px-4 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#2d3f2e]"
+                              className="h-9 cursor-pointer bg-linear-to-r from-emerald-700 to-[#3c4f3d] px-4 text-xs font-bold text-white shadow-sm ring-1 ring-emerald-200/50 transition-all hover:from-emerald-600 hover:to-[#2d3f2e]"
                               disabled={variant.isAnalyzing}
                               onClick={() => analyzeVariant(variant)}
                             >
@@ -397,7 +479,7 @@ export default function KnownVariants({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-9 cursor-pointer border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+                              className="h-9 cursor-pointer border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100"
                               onClick={() => showComparison(variant)}
                             >
                               <BarChart2 className="mr-2 h-3.5 w-3.5" />
@@ -434,4 +516,3 @@ export default function KnownVariants({
     </Card>
   );
 }
-

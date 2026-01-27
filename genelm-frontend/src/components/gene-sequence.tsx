@@ -306,19 +306,33 @@ export function GeneSequence({
 
   return (
     <div className="mt-8 space-y-6">
-      <Card className="overflow-hidden border-slate-200/70 bg-white shadow-sm">
-        {/* Header - Professional with #3c4f3d primary color */}
-        <div className="border-b border-slate-200/60 bg-linear-to-b from-white to-slate-50/60 px-6 py-5">
+      <Card className="relative overflow-hidden border-emerald-200/70 bg-white shadow-lg ring-1 ring-emerald-100/60">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
+        <div className="border-b border-emerald-200/60 bg-linear-to-b from-white via-emerald-50/30 to-white px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#3c4f3d] text-white shadow-sm ring-1 ring-[#3c4f3d]/10">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#203123] text-white shadow-md ring-1 ring-[#203123]/20">
                 <Dna className="h-6 w-6" />
               </div>
               <div>
-                <CardTitle className="text-lg font-bold tracking-tight text-[#3c4f3d]">
-                  Genomic Sequence Explorer
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="border-none bg-[#203123] px-2 py-0 text-[10px] font-black tracking-widest text-white uppercase">
+                    Evo2 Context
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-200/70 bg-white px-2 py-0 text-[10px] font-semibold text-emerald-700"
+                  >
+                    Sequence Window
+                  </Badge>
+                </div>
+                <CardTitle className="mt-2 text-lg font-black tracking-tight text-[#1f2f20]">
+                  Evo2 Sequence Explorer
                 </CardTitle>
-                <div className="mt-1 flex items-center gap-3">
+                <p className="mt-1 text-xs font-semibold text-slate-600">
+                  Navigate loci and click bases to power Evo2 variant analysis.
+                </p>
+                <div className="mt-2 flex items-center gap-3">
                   <Badge
                     variant="outline"
                     className="border-emerald-200/60 bg-white px-2 py-0 font-semibold text-emerald-700"
@@ -359,6 +373,33 @@ export function GeneSequence({
         </div>
 
         <CardContent className="p-6">
+          <div className="mb-6 rounded-2xl border border-emerald-200/60 bg-linear-to-r from-emerald-50 via-white to-lime-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                  <Dna className="h-3.5 w-3.5" />
+                  Evo2-ready sequence context
+                </div>
+                <p className="mt-1 text-xs font-semibold text-slate-600">
+                  Drag to refine your window and load bases for downstream Evo2
+                  analysis.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200/70 bg-white px-4 py-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#203123] text-white">
+                  <Dna className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                    Active Window
+                  </p>
+                  <p className="font-mono text-sm font-bold text-slate-900">
+                    {currentRangeSize.toLocaleString()} bp
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           <Tabs defaultValue="viewer" className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <TabsList>
