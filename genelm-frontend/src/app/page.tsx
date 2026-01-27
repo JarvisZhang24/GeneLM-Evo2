@@ -605,23 +605,66 @@ export default function HomePage() {
         <section
           id="tools"
           ref={toolsSectionRef}
-          className="bg-linear-to-b from-slate-50 to-white py-16"
+          className="relative bg-linear-to-b from-slate-50 via-white to-slate-50 py-16"
         >
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                  <Activity className="h-3.5 w-3.5" />
+                  Analysis Workspace
+                </div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
+                  Professional Gene Analysis Console
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                  Configure genome context, browse loci, and launch Evo2-powered
+                  analysis with curated clinical data.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200/70 bg-white px-4 py-3">
+                <div>
+                  <p className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                    Workspace
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {organism} · {selectedGenome || "No Assembly"}
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {isLoading ? "Syncing" : error ? "Needs Attention" : "Ready"}
+                </span>
+              </div>
+            </div>
             <div className="grid gap-8 lg:grid-cols-12">
               {/* Sidebar - Genome Configuration */}
               <aside className="lg:col-span-3">
-                <Card className="sticky top-24 border-slate-200 shadow-sm">
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3">
-                    <CardTitle className="text-base font-semibold text-slate-900">
-                      Configuration
-                    </CardTitle>
+                <Card className="sticky top-24 overflow-hidden border-emerald-200/70 bg-white shadow-lg ring-1 ring-emerald-100/60">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
+                  <div className="border-b border-emerald-200/60 bg-linear-to-b from-white via-emerald-50/40 to-white px-4 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                          Genome Configuration
+                        </p>
+                        <CardTitle className="mt-1 text-base font-bold text-slate-900">
+                          Analysis Inputs
+                        </CardTitle>
+                        <CardDescription className="mt-1 text-xs text-slate-600">
+                          Define organism context and reference assembly.
+                        </CardDescription>
+                      </div>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#203123] text-white">
+                        <Cpu className="h-4 w-4" />
+                      </div>
+                    </div>
                   </div>
 
                   <CardContent className="space-y-5 p-4">
                     {/* Organism Selection */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium tracking-wider text-slate-500 uppercase">
+                      <label className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
                         Organism
                       </label>
                       <Select
@@ -647,7 +690,7 @@ export default function HomePage() {
 
                     {/* Reference Genome */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium tracking-wider text-slate-500 uppercase">
+                      <label className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
                         Reference Genome
                       </label>
                       <Select
@@ -675,8 +718,8 @@ export default function HomePage() {
 
                     {/* Assembly Info */}
                     {selectedGenome && (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 p-3.5">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
                           <Database className="h-4 w-4" />
                           Current Assembly
                         </div>
@@ -698,26 +741,37 @@ export default function HomePage() {
 
               {/* Main Panel - Browser */}
               <div className="lg:col-span-9">
-                <Card className="border-slate-200 shadow-sm">
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
-                    <div className="flex items-center justify-between">
+                <Card className="overflow-hidden border-emerald-200/70 bg-white shadow-lg ring-1 ring-emerald-100/60">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-lime-400 to-amber-400" />
+                  <div className="border-b border-emerald-200/60 bg-linear-to-b from-white via-emerald-50/30 to-white px-5 py-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <CardTitle className="text-lg font-semibold text-slate-900">
+                        <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-emerald-700 uppercase">
+                          <Layers className="h-3.5 w-3.5" />
+                          Evo2-enabled Browser
+                        </div>
+                        <CardTitle className="mt-2 text-lg font-black text-slate-900">
                           Gene Browser
                         </CardTitle>
-                        <CardDescription className="mt-1 text-sm text-slate-500">
+                        <CardDescription className="mt-1 text-sm text-slate-600">
                           Exploring {chromosomes.length} chromosomes on{" "}
-                          {selectedGenome}
+                          {selectedGenome || "—"}
                         </CardDescription>
                       </div>
-                      <div className="hidden rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 sm:inline-block">
-                        {geneSearchResults.length > 0
-                          ? `${geneSearchResults.length} Genes Found`
-                          : isLoading
-                            ? "Loading…"
-                            : error
-                              ? "Error"
-                              : "Ready"}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
+                          {geneSearchResults.length > 0
+                            ? `${geneSearchResults.length} Genes Found`
+                            : isLoading
+                              ? "Loading…"
+                              : error
+                                ? "Error"
+                                : "Ready"}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                          <Activity className="h-3.5 w-3.5" />
+                          Live
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -729,17 +783,17 @@ export default function HomePage() {
                       className="w-full"
                     >
                       <div className="border-b border-slate-100 px-5 pt-4">
-                        <TabsList className="h-11 w-full justify-start rounded-md bg-slate-100 p-1 sm:w-auto">
+                        <TabsList className="h-11 w-full justify-start rounded-xl border border-slate-200/70 bg-white/90 p-1 shadow-sm sm:w-auto">
                           <TabsTrigger
                             value="browse"
-                            className="flex-1 gap-2 px-5 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-[#3c4f3d] data-[state=active]:shadow-sm sm:flex-none"
+                            className="flex-1 gap-2 px-5 text-sm font-semibold data-[state=active]:bg-[#203123] data-[state=active]:text-white data-[state=active]:shadow-sm sm:flex-none"
                           >
                             <Layers className="h-4 w-4" />
                             Chromosomes
                           </TabsTrigger>
                           <TabsTrigger
                             value="search"
-                            className="flex-1 gap-2 px-5 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-[#3c4f3d] data-[state=active]:shadow-sm sm:flex-none"
+                            className="flex-1 gap-2 px-5 text-sm font-semibold data-[state=active]:bg-[#203123] data-[state=active]:text-white data-[state=active]:shadow-sm sm:flex-none"
                           >
                             <Search className="h-4 w-4" />
                             Gene Search
@@ -779,7 +833,7 @@ export default function HomePage() {
                     </Tabs>
 
                     {error && (
-                      <div className="m-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      <div className="m-5 rounded-xl border border-red-200/70 bg-red-50/80 px-4 py-3 text-sm text-red-700">
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
                           {error}

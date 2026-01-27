@@ -379,121 +379,165 @@ export default function KnownVariants({
               <Table>
                 <TableHeader className="sticky top-0 z-10">
                   <TableRow className="border-b border-slate-200/60 bg-slate-100/80 hover:bg-slate-100/80">
-                    <TableHead className="px-5 py-3 text-[10px] font-bold tracking-widest text-slate-600 uppercase">
-                      Variant Information
+                    <TableHead className="px-5 py-3 text-[11px] font-bold tracking-widest text-slate-600 uppercase">
+                      Variant &amp; Position
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-[10px] font-bold tracking-widest text-slate-600 uppercase">
-                      Type
+                    <TableHead className="px-4 py-3 text-[11px] font-bold tracking-widest text-slate-600 uppercase">
+                      Variant Type
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-[10px] font-bold tracking-widest text-slate-600 uppercase">
+                    <TableHead className="px-4 py-3 text-[11px] font-bold tracking-widest text-slate-600 uppercase">
                       Clinical Significance
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-right text-[10px] font-bold tracking-widest text-slate-600 uppercase">
+                    <TableHead className="px-4 py-3 text-right text-[11px] font-bold tracking-widest text-slate-600 uppercase">
                       Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {variants.map((variant, index) => (
-                    <TableRow
-                      key={variant.clinvar_id}
-                      className="border-b border-slate-100 bg-white transition-colors hover:bg-slate-50/60"
-                    >
-                      <TableCell className="px-5 py-4">
-                        <div className="space-y-2">
-                          <p className="text-sm leading-tight font-semibold text-slate-900">
-                            {variant.title}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[10px] font-semibold text-slate-600">
-                              <MapPin className="h-3 w-3 text-slate-400" />
-                              {variant.location}
-                            </span>
-                            <button
-                              onClick={() =>
-                                window.open(
-                                  `https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}`,
-                                  "_blank",
-                                )
-                              }
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              ClinVar
-                            </button>
-                          </div>
-                        </div>
-                      </TableCell>
+                  {variants.map((variant) => {
+                    const refAltMatch =
+                      variant.title.match(/([ACGT])>([ACGT])/i);
+                    const refAltLabel = refAltMatch
+                      ? `${refAltMatch[1]!.toUpperCase()}→${refAltMatch[2]!.toUpperCase()}`
+                      : null;
+                    const locationLabel = variant.location
+                      ? `chr${variant.chromosome}:${variant.location}`
+                      : "Location unavailable";
+                    const geneLabel = variant.gene_sort
+                      ? variant.gene_sort.replaceAll("|", ", ")
+                      : null;
 
-                      <TableCell className="px-4 py-4">
-                        <Badge
-                          variant="outline"
-                          className="border-slate-200 bg-white text-[10px] font-semibold text-slate-700"
-                        >
-                          {variant.variation_type}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-4">
-                        <div className="space-y-2">
-                          <div
-                            className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.classification)}`}
-                          >
-                            {variant.classification || "Unknown"}
-                          </div>
-                          {variant.evo2Result && (
-                            <div
-                              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
-                            >
-                              <Shield className="h-3.5 w-3.5" />
-                              <span>Evo2: {variant.evo2Result.prediction}</span>
+                    return (
+                      <TableRow
+                        key={variant.clinvar_id}
+                        className="border-b border-slate-100 bg-white transition-colors hover:bg-slate-50/60"
+                      >
+                        <TableCell className="px-5 py-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-base leading-snug font-bold text-slate-900">
+                                {variant.title}
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">
+                                ClinVar ID: {variant.clinvar_id}
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50 px-2 py-1 font-mono text-xs font-semibold text-emerald-700">
+                                <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                                {locationLabel}
+                              </span>
+                              {refAltLabel ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                                  Ref/Alt: {refAltLabel}
+                                </span>
+                              ) : null}
+                              {geneLabel ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600">
+                                  Gene: {geneLabel}
+                                </span>
+                              ) : null}
+                              <button
+                                onClick={() =>
+                                  window.open(
+                                    `https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}`,
+                                    "_blank",
+                                  )
+                                }
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                ClinVar
+                              </button>
+                            </div>
+                          </div>
+                        </TableCell>
 
-                      <TableCell className="px-4 py-4 text-right">
-                        {variant.variation_type
-                          .toLowerCase()
-                          .includes("single nucleotide") ? (
-                          !variant.evo2Result ? (
-                            <Button
-                              size="sm"
-                              className="h-9 cursor-pointer bg-linear-to-r from-emerald-700 to-[#3c4f3d] px-4 text-xs font-bold text-white shadow-sm ring-1 ring-emerald-200/50 transition-all hover:from-emerald-600 hover:to-[#2d3f2e]"
-                              disabled={variant.isAnalyzing}
-                              onClick={() => analyzeVariant(variant)}
-                            >
-                              {variant.isAnalyzing ? (
-                                <>
-                                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                  Analyzing...
-                                </>
-                              ) : (
-                                <>
-                                  <Zap className="mr-2 h-3.5 w-3.5" />
-                                  Analyze with Evo2
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <Button
+                        <TableCell className="px-4 py-4">
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                              Variant type
+                            </p>
+                            <Badge
                               variant="outline"
-                              size="sm"
-                              className="h-9 cursor-pointer border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100"
-                              onClick={() => showComparison(variant)}
+                              className="border-slate-200 bg-white text-xs font-semibold text-slate-700"
                             >
-                              <BarChart2 className="mr-2 h-3.5 w-3.5" />
-                              Compare Results
-                            </Button>
-                          )
-                        ) : (
-                          <span className="text-[10px] font-medium text-slate-400">
-                            SNV only
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              {variant.variation_type}
+                            </Badge>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="px-4 py-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                                ClinVar
+                              </p>
+                              <div
+                                className={`mt-1 inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.classification)}`}
+                              >
+                                {variant.classification || "Unknown"}
+                              </div>
+                            </div>
+                            {variant.evo2Result && (
+                              <div>
+                                <p className="text-[10px] font-bold tracking-widest text-emerald-600 uppercase">
+                                  Evo2
+                                </p>
+                                <div
+                                  className={`mt-1 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
+                                >
+                                  <Shield className="h-3.5 w-3.5" />
+                                  <span>{variant.evo2Result.prediction}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="px-4 py-4 text-right">
+                          {variant.variation_type
+                            .toLowerCase()
+                            .includes("single nucleotide") ? (
+                            !variant.evo2Result ? (
+                              <Button
+                                size="sm"
+                                className="h-9 cursor-pointer bg-linear-to-r from-emerald-700 to-[#3c4f3d] px-4 text-xs font-bold text-white shadow-sm ring-1 ring-emerald-200/50 transition-all hover:from-emerald-600 hover:to-[#2d3f2e]"
+                                disabled={variant.isAnalyzing}
+                                onClick={() => analyzeVariant(variant)}
+                              >
+                                {variant.isAnalyzing ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                    Analyzing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="mr-2 h-3.5 w-3.5" />
+                                    Analyze with Evo2
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 cursor-pointer border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100"
+                                onClick={() => showComparison(variant)}
+                              >
+                                <BarChart2 className="mr-2 h-3.5 w-3.5" />
+                                Compare Results
+                              </Button>
+                            )
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400">
+                              SNV only
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
