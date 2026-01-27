@@ -1,3 +1,8 @@
+
+export interface GeneBounds {
+  min: number;
+  max: number;
+}
 export interface SingleGenomeInfo {
   id: string;
   description: string;
@@ -5,7 +10,11 @@ export interface SingleGenomeInfo {
   sourceName: string;
 }
 
+
+
+
 export async function getAvailableGenomeAssemblies() {
+
   const genomesApiUrl = "https://api.genome.ucsc.edu/list/ucscGenomes";
 
   const genomesApiResponse = await fetch(genomesApiUrl);
@@ -44,3 +53,5 @@ export async function getAvailableGenomeAssemblies() {
 
   return { genomes: structuredGenomes };
 }
+
+

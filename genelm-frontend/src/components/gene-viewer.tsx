@@ -10,8 +10,13 @@ import {
   type GeneDetailsFromSearch,
 } from "~/utils/gene-details-api";
 import { fetchGeneSequence as apiFetchGeneSequence } from "~/utils/gene-sequence-api";
+import { 
+  fetchClinvarVariants as apiFetchClinvarVariants ,
+  type ClinvarVariant
+} from "~/utils/variants-api";
 import { GeneInformation } from "./gene-information";
 import { GeneSequence } from "./gene-sequence";
+import KnownVariants from "./known-variants"
 
 export default function GeneViewer({
   gene,
@@ -37,6 +42,10 @@ export default function GeneViewer({
   } | null>(null);
 
   const [endPosition, setEndPosition] = useState<string>("");
+
+  const [clinvarVariants, setClinvarVariants] = useState<ClinvarVariant[]>([]);
+  const [isLoadingClinvar, setIsLoadingClinvar] = useState(false);
+  const [errorClinvar, setErrorClinvar] = useState<string | null>(null);
 
   const fetchGeneSequence = useCallback(
     async (start: number, end: number) => {
@@ -66,6 +75,7 @@ export default function GeneViewer({
     },
     [gene.chromosome, genomeId],
   );
+
 
   useEffect(() => {
     const geneDetailData = async () => {
@@ -151,6 +161,45 @@ export default function GeneViewer({
     ? { start: actualRange.startpos, end: actualRange.endpos }
     : null;
 
+  const updateClinvarVariant = (
+      clinvar_id: string,
+      updateVariant: ClinvarVariant,
+    ) => {
+      setClinvarVariants((currentVariants) =>
+        currentVariants.map((v) =>
+          v.clinvar_id == clinvar_id ? updateVariant : v,
+        ),
+      );
+  };
+  
+
+  const fetchClinvarVariants = async() => {
+    if(!geneBounds || !gene.chromosome){
+      return;
+    }
+
+    setIsLoadingClinvar(true);
+    setErrorClinvar(null);
+
+    try{
+      const variants = await apiFetchClinvarVariants(gene.chromosome, geneBounds, genomeId);
+      setClinvarVariants(variants);
+      //console.log(variants);
+    }catch(error){
+      setErrorClinvar("failed to load clinvar variants");
+      setClinvarVariants([]);
+    }finally{
+      setIsLoadingClinvar(false);
+    }
+    
+  }
+
+  useEffect(() => {
+    if(geneBounds && gene.chromosome){
+      fetchClinvarVariants();
+    }
+  }, [geneBounds]);
+
   return (
     <div className="space-y-6">
       <Button
@@ -167,6 +216,17 @@ export default function GeneViewer({
         gene={gene}
         geneDetail={geneDetail}
         geneBounds={geneBounds}
+      />
+
+      <KnownVariants
+        refreshVariants={fetchClinvarVariants}
+        showComparison={() => {}}
+        updateVariant={updateClinvarVariant}
+        variants={clinvarVariants}
+        isLoading={isLoadingClinvar}
+        error={errorClinvar}
+        genomeId={genomeId}
+        gene={gene}
       />
 
       <GeneSequence

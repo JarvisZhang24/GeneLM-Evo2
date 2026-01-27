@@ -352,7 +352,7 @@ def get_genome_sequence(position: int, genome: str, chromosome: str , window_siz
     volumes = {mount_path: volume}, 
     max_containers=3,
     retries=3,
-    scaledown_window=30
+    scaledown_window=60
 )
 class Ev2Model:
     
@@ -363,7 +363,7 @@ class Ev2Model:
         self.model = Evo2('evo2_7b')
         print("Evo2 loaded.")
         
-    # @modal.method()
+    #@modal.method()
     @modal.fastapi_endpoint(method="POST")
     def analyze_single_variant(self, request: VariantRequest):
         variant_pos = request.variant_pos
