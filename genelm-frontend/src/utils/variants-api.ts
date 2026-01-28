@@ -10,9 +10,12 @@ export interface ClinvarVariant {
   chromosome: string;
   location: string;
   evo2Result?: {
+    position: number;
     prediction: string;
     delta_score: number;
-    classification_confidence: number;
+    confidence: number;
+    reference: string;
+    variant: string;
   };
   isAnalyzing?: boolean;
   evo2Error?: string;
@@ -21,10 +24,10 @@ export interface ClinvarVariant {
 export interface AnalysisResult {
   position: number;
   reference: string;
-  alternative: string;
+  variant: string;
   delta_score: number;
   prediction: string;
-  classification_confidence: number;
+  confidence: number;
 }
 
 export async function fetchClinvarVariants(

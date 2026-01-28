@@ -480,16 +480,65 @@ export default function KnownVariants({
                               </div>
                             </div>
                             {variant.evo2Result && (
-                              <div>
+                              <div className="space-y-2">
                                 <p className="text-[10px] font-bold tracking-widest text-emerald-600 uppercase">
-                                  Evo2
+                                  Evo2 Analysis
                                 </p>
                                 <div
-                                  className={`mt-1 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
+                                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
                                 >
                                   <Shield className="h-3.5 w-3.5" />
                                   <span>{variant.evo2Result.prediction}</span>
                                 </div>
+                                <div className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-500">
+                                      Genomic Ref→Alt:
+                                    </span>
+                                    <span className="font-mono font-bold text-slate-900">
+                                      {variant.evo2Result.reference}→
+                                      {variant.evo2Result.variant}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-500">
+                                      Delta Score:
+                                    </span>
+                                    <span
+                                      className={`font-mono font-bold ${variant.evo2Result.delta_score < 0 ? "text-red-600" : "text-emerald-600"}`}
+                                    >
+                                      {variant.evo2Result.delta_score.toExponential(
+                                        2,
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-500">
+                                      Confidence:
+                                    </span>
+                                    <span className="font-mono font-bold text-slate-900">
+                                      {(
+                                        variant.evo2Result.confidence * 100
+                                      ).toFixed(1)}
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+                                {refAltMatch &&
+                                  variant.evo2Result.reference !==
+                                    refAltMatch[1]?.toUpperCase() && (
+                                    <div className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-2 text-[10px] text-amber-700">
+                                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                      <span>
+                                        <strong>Note:</strong> ClinVar shows
+                                        cDNA ref (
+                                        {refAltMatch[1]?.toUpperCase()}), but
+                                        genomic ref is{" "}
+                                        {variant.evo2Result.reference}. This is
+                                        normal for minus-strand genes.
+                                      </span>
+                                    </div>
+                                  )}
                               </div>
                             )}
                           </div>
