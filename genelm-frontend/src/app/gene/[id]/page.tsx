@@ -8,6 +8,33 @@ import type { SingleGeneInfo } from "~/utils/genes-api";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
+async function fetchGeneMetadata(geneId: string): Promise<SingleGeneInfo | null> {
+  try {
+    const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&id=${geneId}&retmode=json`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const detail = data?.result?.[geneId];
+    if (!detail) return null;
+
+    let chrom = detail.chromosome || "";
+    if (chrom && !chrom.startsWith("chr")) {
+      chrom = `chr${chrom}`;
+    }
+
+    return {
+      gene_id: geneId,
+      symbol: detail.name || detail.nomenclaturesymbol || "",
+      chromosome: chrom,
+      description: detail.description || detail.nomenclaturename || "",
+      type_of_gene: detail.type_of_gene ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function GeneAnalysisPage() {
   const params = useParams();
   const router = useRouter();
@@ -19,44 +46,48 @@ export default function GeneAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 尝试从 sessionStorage 获取 gene 信息（从首页传递过来）
-    const storedGene = sessionStorage.getItem("selectedGene");
-    const storedGenomeId = sessionStorage.getItem("selectedGenomeId");
+    let cancelled = false;
 
-    if (storedGene) {
-      try {
-        const parsedGene = JSON.parse(storedGene) as SingleGeneInfo;
-        // 验证 gene_id 匹配
-        if (parsedGene.gene_id === geneId) {
-          setGene(parsedGene);
-          if (storedGenomeId) {
-            setGenomeId(storedGenomeId);
+    const loadGene = async () => {
+      // Try sessionStorage first (navigated from /analyze)
+      const storedGene = sessionStorage.getItem("selectedGene");
+      const storedGenomeId = sessionStorage.getItem("selectedGenomeId");
+
+      if (storedGene) {
+        try {
+          const parsedGene = JSON.parse(storedGene) as SingleGeneInfo;
+          if (parsedGene.gene_id === geneId) {
+            setGene(parsedGene);
+            if (storedGenomeId) setGenomeId(storedGenomeId);
+            setIsLoading(false);
+            return;
           }
-          setIsLoading(false);
-          return;
+        } catch {
+          // fall through to API fetch
         }
-      } catch (e) {
-        console.error("Failed to parse stored gene:", e);
       }
-    }
 
-    // 如果没有存储的数据，构造一个基本的 gene 对象
-    // 实际项目中可能需要从 API 获取完整信息
-    setGene({
-      gene_id: geneId,
-      symbol: "",
-      chromosome: "",
-      description: "",
-      type_of_gene: "",
-    });
-    setIsLoading(false);
+      // Direct entry / refresh fallback: fetch from NCBI
+      const fetched = await fetchGeneMetadata(geneId);
+      if (cancelled) return;
+
+      if (fetched) {
+        setGene(fetched);
+        if (storedGenomeId) setGenomeId(storedGenomeId);
+      } else {
+        setError(`Could not load gene information for ID ${geneId}`);
+      }
+      setIsLoading(false);
+    };
+
+    loadGene();
+    return () => { cancelled = true; };
   }, [geneId]);
 
   const handleClose = () => {
-    // 清除存储的数据
     sessionStorage.removeItem("selectedGene");
     sessionStorage.removeItem("selectedGenomeId");
-    router.push("/");
+    router.push("/analyze");
   };
 
   if (isLoading) {
@@ -71,9 +102,9 @@ export default function GeneAnalysisPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-red-600">{error ?? "Gene not found"}</p>
-        <Button variant="outline" onClick={() => router.push("/")}>
+        <Button variant="outline" onClick={() => router.push("/analyze")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
+          Back to Workspace
         </Button>
       </div>
     );

@@ -209,7 +209,7 @@ export default function GeneViewer({
         onClick={onClose}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to results
+        Back to Workspace
       </Button>
 
       <GeneInformation
