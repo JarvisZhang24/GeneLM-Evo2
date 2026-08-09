@@ -82,9 +82,10 @@ evo2_image = (
     )
     .uv_pip_install("flash-attn==2.8.0.post2", extra_options="--no-build-isolation")
     .run_commands(
-        "git clone --recurse-submodules https://github.com/ArcInstitute/evo2.git /opt/evo2",
+        "git clone https://github.com/ArcInstitute/evo2.git /opt/evo2",
         f"cd /opt/evo2 && git checkout {EVO2_REVISION}",
-        "cd /opt/evo2 && uv pip install --system .",
+        "cd /opt/evo2 && git submodule update --init --recursive",
+        "cd /opt/evo2 && /.uv/uv pip install --system .",
     )
 )
 
