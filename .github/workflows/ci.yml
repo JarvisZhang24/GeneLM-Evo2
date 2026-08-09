@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: genelm-frontend/package-lock.json
+      - name: Use the repository npm version
+        run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run cf-typegen
         env:
