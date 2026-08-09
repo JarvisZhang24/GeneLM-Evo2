@@ -17,9 +17,10 @@ npm run build:cloudflare
 ```
 
 Production inference is proxied through `/api/analyze-variant`. Copy
-`.env.example` to `.env.local` for local testing; configure the same values as
-Cloudflare Worker secrets in production. Never expose Modal credentials through
-`NEXT_PUBLIC_` variables.
+the variable names from `.dev.vars.example` into an ignored `.env.local` file
+for local testing; configure the same values as Cloudflare Worker secrets in
+production. Never expose Modal credentials through `NEXT_PUBLIC_` variables.
 
-See the repository-level README for the scientific contract, security model,
-and Modal connection instructions.
+See the bilingual [repository-level README](../README.md) for the live project,
+Nature paper attribution, scientific contract, security model, and Modal
+deployment instructions.
