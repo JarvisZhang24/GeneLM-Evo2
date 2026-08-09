@@ -4,6 +4,13 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-08-09",
   "compatibility_flags": ["nodejs_compat"],
+  "secrets": {
+    "required": [
+      "MODAL_ANALYZE_URL",
+      "MODAL_PROXY_KEY",
+      "MODAL_PROXY_SECRET"
+    ]
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

@@ -195,12 +195,9 @@ to constrain demo cost.
 
 ### 2. Create a Modal proxy token
 
-```bash
-modal workspace proxy-tokens create
-```
-
-Save the one-time token ID (`wk-...`) and secret (`ws-...`). If Modal RBAC is
-enabled, allow the token in the environment where the app was deployed.
+In the Modal dashboard, open **Settings → Proxy Tokens**, choose **New Token**,
+and save the one-time token ID (`wk-...`) and secret (`ws-...`). If Modal RBAC
+is enabled, allow the token in the environment where the app was deployed.
 
 ### 3. Store all three values as Cloudflare Worker secrets
 
