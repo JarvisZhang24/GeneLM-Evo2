@@ -100,13 +100,14 @@ export function VariantAnalysisDialog({
           {result ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-xs font-semibold text-emerald-800">
-                Evo2-7B delta likelihood (alternate − reference)
+                Evo2-7B mean log-likelihood delta (alternate − reference)
               </p>
               <p className="mt-1 font-mono text-2xl font-bold text-emerald-950">
                 {result.delta_likelihood.toExponential(6)}
               </p>
               <p className="mt-2 text-xs text-emerald-900/70">
-                A model likelihood difference, not a pathogenicity probability.
+                A mean per-token model log-likelihood difference, not a
+                pathogenicity probability.
               </p>
             </div>
           ) : null}

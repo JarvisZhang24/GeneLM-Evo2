@@ -132,6 +132,10 @@ export function orientAllelesToGrch38(
   throw new Error("ClinVar allele does not match the GRCh38 reference strand");
 }
 
+export function isResolvableClinvarSnv(variant: ClinvarVariant): boolean {
+  return /([ACGT])>([ACGT])/i.test(variant.title);
+}
+
 export async function resolveClinvarSnv(variant: ClinvarVariant): Promise<{
   position: number;
   reference: "A" | "C" | "G" | "T";
@@ -186,5 +190,29 @@ export async function analyzeVariantWithAPI(input: {
       parsedError.success ? parsedError.data.error : "Analysis failed",
     );
   }
-  return analysisResultSchema.parse(payload);
+  if (response.status === 200) return analysisResultSchema.parse(payload);
+
+  const submitted = z
+    .object({ status: z.literal("pending"), job_token: z.string().min(1) })
+    .parse(payload);
+  for (let attempt = 0; attempt < 150; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    const resultResponse = await fetch(
+      `/api/analyze-variant?job=${encodeURIComponent(submitted.job_token)}`,
+      { cache: "no-store" },
+    );
+    const resultPayload = await resultResponse.json();
+    if (resultResponse.status === 202) continue;
+    if (!resultResponse.ok) {
+      const parsedError = z
+        .object({ error: z.string() })
+        .safeParse(resultPayload);
+      throw new Error(
+        parsedError.success ? parsedError.data.error : "Analysis failed",
+      );
+    }
+    return analysisResultSchema.parse(resultPayload);
+  }
+
+  throw new Error("Analysis timed out after five minutes");
 }

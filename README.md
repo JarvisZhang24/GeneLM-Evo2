@@ -16,8 +16,11 @@ alternate 8,192 bp contexts.
   supported OpenNext adapter.
 - Gene search, direct gene URLs, sequence browsing, ClinVar lookup, forward/
   reverse-strand SNV normalization, and click-a-base analysis are implemented.
-- The Modal H100 service definition is implemented but has **not yet been
-  deployed or connected** in this repository's current state.
+- The application is deployed at
+  [genelm-evo2.jarviszhang-ai.workers.dev](https://genelm-evo2.jarviszhang-ai.workers.dev),
+  with Cloudflare connected to an authenticated Modal Evo2-7B H100 service.
+- Long GPU cold starts use an asynchronous submit-and-poll job contract, so a
+  browser request does not hold one Worker-to-Modal HTTP connection open.
 - No benchmark metric is claimed. A GPU benchmark must persist its complete
   inputs, outputs, model revision, and evaluation protocol before an AUROC is
   added to this README or a résumé.
@@ -36,6 +39,9 @@ alternate 8,192 bp contexts.
 - Protected GPU boundary: browsers call a same-origin Cloudflare Route
   Handler. Modal URL and proxy credentials are runtime secrets, Modal requires
   proxy authentication, and Cloudflare limits anonymous analysis requests.
+- Serverless job orchestration: Cloudflare signs opaque Modal call IDs before
+  returning them to the browser, then verifies each token while polling short
+  status requests. The H100 can still scale to zero between demo sessions.
 - Reproducible backend image: CUDA, PyTorch, FlashAttention, and the Evo2 source
   revision are pinned in the Modal image definition.
 
@@ -46,11 +52,14 @@ flowchart LR
     U["Browser"] --> W["Cloudflare Worker / Next.js"]
     W --> N["NCBI Gene + ClinVar"]
     W --> C["UCSC GRCh38 sequence"]
-    U -->|"POST /api/analyze-variant"| W
-    W -->|"Modal proxy token"| M["Modal H100 endpoint"]
+    U -->|"POST: submit SNV"| W
+    W -->|"Authenticated short request"| Q["Modal job API"]
+    Q -->|"spawn"| M["Modal H100 worker"]
     M --> E["Evo2-7B"]
-    E -->|"reference and alternate scores"| M
-    M --> W
+    U -->|"GET: poll signed job token"| W
+    W -->|"poll call ID"| Q
+    E -->|"mean log-likelihood scores"| Q
+    Q --> W
     W --> U
 ```
 
@@ -66,7 +75,7 @@ The browser never receives the Modal endpoint URL, token ID, or token secret.
 | Coordinates | 1-based inclusive at the public API boundary |
 | Model | `evo2_7b` |
 | Context | 8,192 bp |
-| Output | Reference score, alternate score, and alt-minus-ref delta |
+| Output | Mean reference/alternate log-likelihoods and alt-minus-ref delta |
 | Intended use | Research and software demonstration only |
 
 ## Repository layout
@@ -80,7 +89,7 @@ GeneLM-Evo2/
 │   ├── open-next.config.ts
 │   └── wrangler.jsonc
 ├── genelm-backend/
-│   ├── main.py                               # Modal H100 endpoint
+│   ├── main.py                               # Modal job API + H100 worker
 │   ├── variant_core.py                       # pure coordinate/scoring logic
 │   └── tests/
 └── .github/workflows/ci.yml
@@ -111,12 +120,13 @@ npm run dev
 
 ### Backend tests
 
+This checkout uses the `Biotech_ev2` Conda environment on macOS:
+
 ```bash
 cd genelm-backend
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-pytest -q
+conda activate Biotech_ev2
+env PYTHONNOUSERSITE=1 python -m pip install -r requirements-dev.txt
+env PYTHONNOUSERSITE=1 python -m pytest -q
 ```
 
 These tests exercise coordinate conversion, chromosome validation, reference
@@ -148,13 +158,15 @@ Content-Type: application/json
 {
   "variant_pos": 43119628,
   "alt_allele": "G",
-  "expected_ref": "A",
+  "expected_ref": "T",
   "genome": "hg38",
   "chromosome": "chr17"
 }
 ```
 
-The protected Modal response is validated before the Worker returns it:
+The POST normally returns HTTP 202 with a signed, opaque job token. The browser
+polls `GET /api/analyze-variant?job=...` until the protected Modal result is
+ready; only then does the Worker validate and return this payload:
 
 ```json
 {
@@ -163,17 +175,17 @@ The protected Modal response is validated before the Worker returns it:
   "genome": "hg38",
   "model": "evo2_7b",
   "context_length": 8192,
-  "reference": "A",
+  "reference": "T",
   "alternate": "G",
-  "reference_score": -1234.5,
-  "alternate_score": -1234.7,
-  "delta_likelihood": -0.2,
-  "interpretation": "delta_likelihood = alternate_score - reference_score; this research score is not a clinical classification or probability"
+  "reference_score": -0.8358864784240723,
+  "alternate_score": -0.8358675837516785,
+  "delta_likelihood": 0.000018894672393798828,
+  "interpretation": "scores are mean per-token log-likelihoods; delta_likelihood = alternate_score - reference_score; this research score is not a clinical classification or probability"
 }
 ```
 
-The numeric values above illustrate the schema only; they are not measured
-results from this repository.
+The numeric values above were measured in a Modal H100 smoke test on August 9,
+2026 using the pinned Evo2 revision and the documented 8,192 bp GRCh38 window.
 
 ## Connect Modal to Cloudflare
 
@@ -181,17 +193,16 @@ results from this repository.
 
 ```bash
 cd genelm-backend
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
+conda activate Biotech_ev2
+env PYTHONNOUSERSITE=1 python -m pip install -r requirements.txt
 modal setup
 modal deploy main.py
 ```
 
 The first build compiles GPU dependencies and can take time. Record the URL
-printed for `Evo2Model.analyze_single_variant`. The function is protected with
-`requires_proxy_auth=True` and scales to at most one H100 container by default
-to constrain demo cost.
+printed for `analyze_single_variant`. This CPU job API is protected with
+`requires_proxy_auth=True`; it submits work to `Evo2Model.score_single_variant`,
+which scales to at most one H100 container by default to constrain demo cost.
 
 ### 2. Create a Modal proxy token
 
@@ -236,19 +247,19 @@ and submit. Confirm that:
 
 ## Résumé wording
 
-Safe wording before Modal GPU verification:
+Verified wording for the current deployment:
 
 > Built a full-stack human GRCh38 variant-analysis prototype using Next.js,
 > TypeScript, Cloudflare Workers, NCBI/ClinVar/UCSC APIs, and a protected Modal
-> H100 service definition for pretrained Evo2-7B inference.
+> H100 inference service for pretrained Evo2-7B.
 
 > Implemented strand-aware SNV normalization and reference-versus-alternate
-> likelihood scoring over fixed 8,192 bp contexts, with strict coordinate/data
-> validation, rate limiting, unit tests, and CI.
+> mean log-likelihood scoring over fixed 8,192 bp contexts, plus authenticated
+> asynchronous GPU jobs, strict coordinate validation, rate limiting, tests,
+> and CI.
 
-After deployment, replace “service definition” with “inference service” only
-after a real end-to-end smoke test. Add latency, throughput, cost, or AUROC only
-from persisted, reproducible run artifacts.
+Do not add latency, throughput, cost, pathogenicity accuracy, or AUROC claims
+without persisted inputs, outputs, model revision, and evaluation protocol.
 
 ## Attribution
 

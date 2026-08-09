@@ -40,7 +40,12 @@ GRCH38_CHROMOSOME_SIZES = {
 
 
 class SequenceScorer(Protocol):
-    def score_sequences(self, sequences: list[str]) -> list[float]: ...
+    def score_sequences(
+        self,
+        sequences: list[str],
+        *,
+        reduce_method: str,
+    ) -> list[float]: ...
 
 
 @dataclass(frozen=True)
@@ -147,7 +152,8 @@ def score_single_nucleotide_variant(
         expected_reference,
     )
     reference_score, alternate_score = scorer.score_sequences(
-        [reference_sequence.upper(), alternate_sequence]
+        [reference_sequence.upper(), alternate_sequence],
+        reduce_method="mean",
     )
     delta = float(alternate_score) - float(reference_score)
     return {

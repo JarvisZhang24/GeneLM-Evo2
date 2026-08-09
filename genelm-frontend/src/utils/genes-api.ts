@@ -10,12 +10,14 @@ export interface SingleGeneInfo {
   type_of_gene: string;
 }
 
-const clinicalTablesSchema = z.tuple([
-  z.number(),
-  z.array(z.string()),
-  z.record(z.array(z.union([z.string(), z.number(), z.null()]))),
-  z.array(z.unknown()).optional(),
-]);
+const clinicalTablesSchema = z
+  .tuple([
+    z.number(),
+    z.array(z.string()),
+    z.record(z.array(z.union([z.string(), z.number(), z.null()]))),
+    z.array(z.unknown()).optional(),
+  ])
+  .rest(z.unknown());
 
 const geneSummarySchema = z.object({
   result: z
@@ -50,7 +52,11 @@ export async function getGenes(query: string): Promise<SingleGeneInfo[]> {
   );
   if (!response.ok) throw new Error("NCBI gene search failed");
 
-  const [, , fields] = clinicalTablesSchema.parse(await response.json());
+  const parsed = clinicalTablesSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new Error("NCBI gene search returned an unexpected response");
+  }
+  const [, , fields] = parsed.data;
   const count = Math.min(10, fields.GeneID?.length ?? 0);
   return Array.from({ length: count }, (_, index) => ({
     gene_id: valueAt(fields.GeneID, index),

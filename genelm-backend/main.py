@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import modal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from variant_core import (
     DEFAULT_WINDOW_SIZE,
@@ -54,6 +54,21 @@ class VariantRequest(BaseModel):
         return normalize_base(value, field_name="expected reference")
 
 
+class InferenceJobRequest(BaseModel):
+    """Submit one variant or poll one previously submitted Modal call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    variant: VariantRequest | None = None
+    call_id: str | None = Field(default=None, pattern=r"^fc-[A-Za-z0-9]+$")
+
+    @model_validator(mode="after")
+    def validate_operation(self) -> "InferenceJobRequest":
+        if (self.variant is None) == (self.call_id is None):
+            raise ValueError("provide exactly one of variant or call_id")
+        return self
+
+
 evo2_image = (
     modal.Image.from_registry(
         "nvidia/cuda:12.8.1-devel-ubuntu22.04",
@@ -61,16 +76,26 @@ evo2_image = (
     )
     .apt_install(
         "build-essential",
+        "cmake",
         "git",
         "ninja-build",
         "libcudnn9-cuda-12",
         "libcudnn9-dev-cuda-12",
     )
+    .env(
+        {
+            "CC": "/usr/bin/gcc",
+            "CXX": "/usr/bin/g++",
+            "MAX_JOBS": "4",
+        }
+    )
     .uv_pip_install(
         "fastapi[standard]==0.139.2",
         "ninja==1.11.1.4",
+        "numpy==2.2.6",
         "packaging==26.3",
         "psutil==7.0.0",
+        "pybind11==2.13.6",
         "pydantic==2.13.4",
         "requests==2.34.2",
         "setuptools==80.9.0",
@@ -80,6 +105,10 @@ evo2_image = (
         "torch==2.7.1",
         index_url="https://download.pytorch.org/whl/cu128",
     )
+    .uv_pip_install(
+        "transformer-engine[pytorch,core_cu12]==2.3.0",
+        extra_options="--no-build-isolation",
+    )
     .uv_pip_install("flash-attn==2.8.0.post2", extra_options="--no-build-isolation")
     .run_commands(
         "git clone https://github.com/ArcInstitute/evo2.git /opt/evo2",
@@ -87,11 +116,21 @@ evo2_image = (
         "cd /opt/evo2 && git submodule update --init --recursive",
         "cd /opt/evo2 && /.uv/uv pip install --system .",
     )
+    .add_local_python_source("variant_core")
+)
+
+api_image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .uv_pip_install(
+        "fastapi[standard]==0.139.2",
+        "pydantic==2.13.4",
+    )
+    .add_local_python_source("variant_core")
 )
 
 model_cache = modal.Volume.from_name("genelm-huggingface-cache", create_if_missing=True)
 cache_path = "/root/.cache/huggingface"
-app = modal.App("genelm-evo2", image=evo2_image)
+app = modal.App("genelm-evo2")
 
 
 def fetch_grch38_window(position: int, chromosome: str) -> tuple[str, int]:
@@ -124,6 +163,7 @@ def fetch_grch38_window(position: int, chromosome: str) -> tuple[str, int]:
 
 
 @app.cls(
+    image=evo2_image,
     gpu="H100",
     volumes={cache_path: model_cache},
     max_containers=1,
@@ -137,8 +177,7 @@ class Evo2Model:
 
         self.model = Evo2(MODEL_NAME)
 
-    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
-    def analyze_single_variant(self, request: VariantRequest) -> dict[str, object]:
+    def _analyze_single_variant(self, request: VariantRequest) -> dict[str, object]:
         sequence, relative_position = fetch_grch38_window(
             request.variant_pos,
             request.chromosome,
@@ -158,10 +197,47 @@ class Evo2Model:
             "context_length": DEFAULT_WINDOW_SIZE,
             **scores,
             "interpretation": (
-                "delta_likelihood = alternate_score - reference_score; "
+                "scores are mean per-token log-likelihoods; delta_likelihood = "
+                "alternate_score - reference_score; "
                 "this research score is not a clinical classification or probability"
             ),
         }
+
+    @modal.method()
+    def score_single_variant(self, request: VariantRequest) -> dict[str, object]:
+        """Invoke the scorer from Modal clients and local smoke tests."""
+
+        return self._analyze_single_variant(request)
+
+
+@app.function(image=api_image, timeout=30)
+@modal.fastapi_endpoint(
+    method="POST",
+    label="genelm-evo2-evo2model-analyze-single-variant",
+    requires_proxy_auth=True,
+)
+def analyze_single_variant(request: InferenceJobRequest):
+    """Submit or poll an Evo2 job without holding one long HTTP request open."""
+
+    from fastapi.responses import JSONResponse
+
+    if request.variant is not None:
+        call = Evo2Model().score_single_variant.spawn(request.variant)
+        return JSONResponse(
+            {"call_id": call.object_id, "status": "pending"},
+            status_code=202,
+        )
+
+    assert request.call_id is not None
+    function_call = modal.FunctionCall.from_id(request.call_id)
+    try:
+        result = function_call.get(timeout=0)
+    except TimeoutError:
+        return JSONResponse({"status": "pending"}, status_code=202)
+    except modal.exception.OutputExpiredError:
+        return JSONResponse({"error": "Inference job expired"}, status_code=404)
+
+    return result
 
 
 @app.local_entrypoint()
@@ -172,5 +248,5 @@ def main() -> None:
         genome="hg38",
         chromosome="chr17",
     )
-    result = Evo2Model().analyze_single_variant.remote(request)
+    result = Evo2Model().score_single_variant.remote(request)
     print(result)

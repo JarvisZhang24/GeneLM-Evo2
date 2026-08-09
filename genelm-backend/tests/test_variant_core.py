@@ -12,7 +12,13 @@ from variant_core import (
 
 
 class FakeScorer:
-    def score_sequences(self, sequences: list[str]) -> list[float]:
+    def score_sequences(
+        self,
+        sequences: list[str],
+        *,
+        reduce_method: str,
+    ) -> list[float]:
+        assert reduce_method == "mean"
         return [float(sequence.count("G")) for sequence in sequences]
 
 

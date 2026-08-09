@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { orientAllelesToGrch38 } from "./variants-api";
+import { isResolvableClinvarSnv, orientAllelesToGrch38 } from "./variants-api";
 import { variantRequestSchema } from "./variant-schema";
 
 describe("ClinVar allele orientation", () => {
@@ -44,6 +44,29 @@ describe("variant request contract", () => {
         genome: "hg19",
         chromosome: "chrUn",
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("ClinVar SNV eligibility", () => {
+  const variant = {
+    clinvar_id: "1",
+    title: "NM_000001.1(TEST):c.10A>G",
+    variation_type: "Single Nucleotide Variant",
+    classification: "Uncertain significance",
+    gene_sort: "TEST",
+    chromosome: "chr1",
+    location: "10",
+  };
+
+  it("accepts substitutions and rejects indels", () => {
+    expect(isResolvableClinvarSnv(variant)).toBe(true);
+    expect(
+      isResolvableClinvarSnv({
+        ...variant,
+        title: "NM_000001.1(TEST):c.10_11del",
+        variation_type: "Deletion",
+      }),
     ).toBe(false);
   });
 });
