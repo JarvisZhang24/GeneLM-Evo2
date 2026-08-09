@@ -68,9 +68,13 @@ evo2_image = (
     )
     .uv_pip_install(
         "fastapi[standard]==0.139.2",
+        "ninja==1.11.1.4",
         "packaging==26.3",
+        "psutil==7.0.0",
         "pydantic==2.13.4",
         "requests==2.34.2",
+        "setuptools==80.9.0",
+        "wheel==0.45.1",
     )
     .uv_pip_install(
         "torch==2.7.1",
