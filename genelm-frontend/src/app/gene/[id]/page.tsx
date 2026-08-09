@@ -1,89 +1,71 @@
 "use client";
-export const runtime = 'edge';
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import GeneViewer from "~/components/gene-viewer";
-import type { SingleGeneInfo } from "~/utils/genes-api";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+
+import GeneViewer from "~/components/gene-viewer";
 import { Button } from "~/components/ui/button";
+import { getGeneById, type SingleGeneInfo } from "~/utils/genes-api";
 
 export default function GeneAnalysisPage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const geneId = params.id as string;
-
+  const geneId = params.id;
   const [gene, setGene] = useState<SingleGeneInfo | null>(null);
-  const [genomeId, setGenomeId] = useState<string>("hg38");
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 尝试从 sessionStorage 获取 gene 信息（从首页传递过来）
-    const storedGene = sessionStorage.getItem("selectedGene");
-    const storedGenomeId = sessionStorage.getItem("selectedGenomeId");
-
-    if (storedGene) {
+    let cancelled = false;
+    const loadGene = async () => {
       try {
-        const parsedGene = JSON.parse(storedGene) as SingleGeneInfo;
-        // 验证 gene_id 匹配
-        if (parsedGene.gene_id === geneId) {
-          setGene(parsedGene);
-          if (storedGenomeId) {
-            setGenomeId(storedGenomeId);
+        const stored = sessionStorage.getItem("selectedGene");
+        if (stored) {
+          const parsed = JSON.parse(stored) as SingleGeneInfo;
+          if (parsed.gene_id === geneId && parsed.chromosome) {
+            if (!cancelled) setGene(parsed);
+            return;
           }
-          setIsLoading(false);
-          return;
         }
-      } catch (e) {
-        console.error("Failed to parse stored gene:", e);
+        const fetched = await getGeneById(geneId);
+        if (!cancelled) setGene(fetched);
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error ? loadError.message : "Gene not found",
+          );
+        }
       }
-    }
-
-    // 如果没有存储的数据，构造一个基本的 gene 对象
-    // 实际项目中可能需要从 API 获取完整信息
-    setGene({
-      gene_id: geneId,
-      symbol: "",
-      chromosome: "",
-      description: "",
-      type_of_gene: "",
-    });
-    setIsLoading(false);
+    };
+    void loadGene();
+    return () => {
+      cancelled = true;
+    };
   }, [geneId]);
 
-  const handleClose = () => {
-    // 清除存储的数据
-    sessionStorage.removeItem("selectedGene");
-    sessionStorage.removeItem("selectedGenomeId");
-    router.push("/");
-  };
-
-  if (isLoading) {
+  if (!gene && !error) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#3c4f3d]" />
       </div>
     );
   }
-
   if (error || !gene) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-red-600">{error ?? "Gene not found"}</p>
+        <p className="text-red-700">{error ?? "Gene not found"}</p>
         <Button variant="outline" onClick={() => router.push("/")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
+          Back home
         </Button>
       </div>
     );
   }
-
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-50 to-white">
+    <main className="min-h-screen bg-linear-to-b from-slate-50 to-white">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <GeneViewer gene={gene} genomeId={genomeId} onClose={handleClose} />
+        <GeneViewer gene={gene} onClose={() => router.push("/")} />
       </div>
-    </div>
+    </main>
   );
 }

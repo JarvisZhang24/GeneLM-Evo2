@@ -50,7 +50,6 @@ export function GeneSequence({
   onSequenceClick: (position: number, nucleotide: string) => void;
   maxViewRange: number;
 }) {
-  const [sliderValues, setSliderValues] = useState({ start: 50, end: 60 });
   const [isDraggingStart, setIsDraggingStart] = useState(false);
   const [isDraggingEnd, setIsDraggingEnd] = useState(false);
   const [isDraggingRange, setIsDraggingRange] = useState(false);
@@ -90,8 +89,8 @@ export function GeneSequence({
     }
   }, []);
 
-  useEffect(() => {
-    if (!geneBounds) return;
+  const sliderValues = useMemo(() => {
+    if (!geneBounds) return { start: 0, end: 100 };
     const minBound = Math.min(geneBounds.min, geneBounds.max);
     const maxBound = Math.max(geneBounds.min, geneBounds.max);
     const totalSize = maxBound - minBound;
@@ -100,17 +99,16 @@ export function GeneSequence({
     const endNum = parseInt(endPosition);
 
     if (isNaN(startNum) || isNaN(endNum) || totalSize <= 0) {
-      setSliderValues({ start: 0, end: 100 });
-      return;
+      return { start: 0, end: 100 };
     }
 
     const startPercent = ((startNum - minBound) / totalSize) * 100;
     const endPercent = ((endNum - minBound) / totalSize) * 100;
 
-    setSliderValues({
+    return {
       start: Math.max(0, Math.min(startPercent, 100)),
       end: Math.max(0, Math.min(endPercent, 100)),
-    });
+    };
   }, [startPosition, endPosition, geneBounds]);
 
   useEffect(() => {
@@ -253,7 +251,7 @@ export function GeneSequence({
       const colorizedChars: JSX.Element[] = [];
 
       for (let j = 0; j < chunk.length; j++) {
-        const nucleotide = chunk[j] || "";
+        const nucleotide = chunk[j] ?? "";
         const nucleotidePosition = lineStartPos + j;
         const color = getNucleotideColorClass(nucleotide);
         colorizedChars.push(

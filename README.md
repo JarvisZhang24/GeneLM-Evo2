@@ -1,312 +1,267 @@
-<div align="center">
+# GeneLM Evo2
 
-# 🧬 GeneLM-Evo2
+GeneLM Evo2 is a full-stack research prototype for exploring human genes and
+scoring single-nucleotide variants (SNVs) with the pretrained Evo2-7B DNA
+language model. It joins NCBI Gene and ClinVar metadata with UCSC GRCh38
+reference sequence, then compares the likelihood of matched reference and
+alternate 8,192 bp contexts.
 
-**Genomic Intelligence Powered by Evo2**
+> **Research use only.** The Evo2 output is a model likelihood difference. It
+> is not a pathogenicity classification, calibrated probability, diagnosis, or
+> medical recommendation.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org/)
-[![Modal](https://img.shields.io/badge/Modal-Serverless-00D4AA?style=for-the-badge)](https://modal.com/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+## Current status
 
-*A full-stack genomic variant analysis platform leveraging the Evo2 DNA language model for zero-shot pathogenicity prediction*
+- The Next.js application is configured for Cloudflare Workers through the
+  supported OpenNext adapter.
+- Gene search, direct gene URLs, sequence browsing, ClinVar lookup, forward/
+  reverse-strand SNV normalization, and click-a-base analysis are implemented.
+- The Modal H100 service definition is implemented but has **not yet been
+  deployed or connected** in this repository's current state.
+- No benchmark metric is claimed. A GPU benchmark must persist its complete
+  inputs, outputs, model revision, and evaluation protocol before an AUROC is
+  added to this README or a résumé.
 
-[Features](#-features) • [Tech Stack](#️-tech-stack) • [Quick Start](#-quick-start) • [Architecture](#️-architecture) • [API](#-api-reference)
+## What is technically interesting
 
-</div>
+- Explicit coordinate contract: the UI uses 1-based inclusive genomic
+  positions, UCSC receives 0-based half-open intervals, and the model always
+  receives exactly 8,192 bases.
+- Strand-safe ClinVar handling: transcript alleles are checked against the
+  fetched GRCh38 reference base and complemented when the record is on the
+  reverse strand.
+- Honest model contract: the API returns `alternate_score - reference_score`
+  and deliberately avoids unsupported “likely pathogenic,” “likely benign,”
+  or confidence-percentage labels.
+- Protected GPU boundary: browsers call a same-origin Cloudflare Route
+  Handler. Modal URL and proxy credentials are runtime secrets, Modal requires
+  proxy authentication, and Cloudflare limits anonymous analysis requests.
+- Reproducible backend image: CUDA, PyTorch, FlashAttention, and the Evo2 source
+  revision are pinned in the Modal image definition.
 
----
+## Architecture
 
-## ✨ Features
+```mermaid
+flowchart LR
+    U["Browser"] --> W["Cloudflare Worker / Next.js"]
+    W --> N["NCBI Gene + ClinVar"]
+    W --> C["UCSC GRCh38 sequence"]
+    U -->|"POST /api/analyze-variant"| W
+    W -->|"Modal proxy token"| M["Modal H100 endpoint"]
+    M --> E["Evo2-7B"]
+    E -->|"reference and alternate scores"| M
+    M --> W
+    W --> U
+```
 
-<table>
-<tr>
-<td width="50%">
+The browser never receives the Modal endpoint URL, token ID, or token secret.
 
-### 🔬 Evo2-Powered Analysis
-- **7B parameter** DNA language model
-- Zero-shot variant pathogenicity prediction
-- ~**95% AUROC** on BRCA1 benchmark
-- Real-time inference on **H100 GPUs**
+## Supported analysis contract
 
-</td>
-<td width="50%">
+| Dimension | Supported |
+| --- | --- |
+| Species | Human |
+| Assembly | GRCh38 / UCSC `hg38` |
+| Variant | One genomic SNV (`A`, `C`, `G`, or `T`) |
+| Coordinates | 1-based inclusive at the public API boundary |
+| Model | `evo2_7b` |
+| Context | 8,192 bp |
+| Output | Reference score, alternate score, and alt-minus-ref delta |
+| Intended use | Research and software demonstration only |
 
-### 🧭 Interactive Gene Browser
-- Browse by chromosome or search by gene
-- Interactive sequence viewer with nucleotide highlighting
-- Click any base to trigger variant analysis
-- Support for **24+ genome assemblies**
+## Repository layout
 
-</td>
-</tr>
-<tr>
-<td width="50%">
+```text
+GeneLM-Evo2/
+├── genelm-frontend/
+│   ├── src/app/api/analyze-variant/route.ts  # protected Cloudflare proxy
+│   ├── src/components/                       # gene and variant UI
+│   ├── src/utils/                            # typed NCBI/UCSC contracts
+│   ├── open-next.config.ts
+│   └── wrangler.jsonc
+├── genelm-backend/
+│   ├── main.py                               # Modal H100 endpoint
+│   ├── variant_core.py                       # pure coordinate/scoring logic
+│   └── tests/
+└── .github/workflows/ci.yml
+```
 
-### 🏥 ClinVar Integration
-- Fetch clinically curated variants
-- Compare Evo2 predictions vs clinical labels
-- One-click analysis for SNVs
-- Confidence scoring with delta-likelihood
-
-</td>
-<td width="50%">
-
-### ⚡ Modern Tech Stack
-- Next.js 15 with Turbopack
-- React 19 + TailwindCSS 4
-- Modal serverless infrastructure
-- UCSC & NCBI API integration
-
-</td>
-</tr>
-</table>
-
----
-
-## 🛠️ Tech Stack
+## Local development
 
 ### Frontend
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| [Next.js](https://nextjs.org/) | 15 | React framework with App Router |
-| [React](https://react.dev/) | 19 | UI library |
-| [TailwindCSS](https://tailwindcss.com/) | 4 | Utility-first CSS |
-| [shadcn/ui](https://ui.shadcn.com/) | Latest | Component library |
-| [Framer Motion](https://www.framer.com/motion/) | 12 | Animations |
-| [TypeScript](https://www.typescriptlang.org/) | 5.8 | Type safety |
-
-### Backend
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| [Python](https://python.org/) | 3.12 | Runtime |
-| [Modal](https://modal.com/) | Latest | Serverless GPU infrastructure |
-| [Evo2](https://github.com/ArcInstitute/evo2) | 7B | DNA language model |
-| [PyTorch](https://pytorch.org/) | 2.8 | Deep learning framework |
-| [Flash Attention](https://github.com/Dao-AILab/flash-attention) | 2.8.3 | Efficient attention |
-| [CUDA](https://developer.nvidia.com/cuda-toolkit) | 12.6 | GPU acceleration |
-
-### External APIs
-
-- **UCSC Genome Browser API** — Reference sequence data
-- **NCBI ClinVar API** — Clinical variant annotations
-- **NCBI Gene API** — Gene information and coordinates
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** 20+ and npm
-- **Python** 3.12+
-- **Modal** account ([sign up](https://modal.com/))
-- **NVIDIA GPU** with CUDA support (for local development, or use Modal's H100s)
-
-### Frontend Setup
+Requires Node.js 22 and npm.
 
 ```bash
-# Navigate to frontend directory
 cd genelm-frontend
-
-# Install dependencies
-npm install
-
-# Create environment file
-cp .env.example .env.local
-
-# Configure your environment variables
-# NEXT_PUBLIC_ANALYZE_SINGLE_VARIANT_BASE_URL=<your-modal-endpoint>
-
-# Start development server
+npm ci
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+Gene and sequence exploration works without Modal. Variant scoring returns a
+clear `503` until the three server-side Modal variables are configured.
 
-### Backend Setup
+To test with an already deployed Modal service:
 
 ```bash
-# Navigate to backend directory
+cp .env.example .env.local
+# Replace the placeholder values in .env.local.
+npm run dev
+```
+
+### Backend tests
+
+```bash
 cd genelm-backend
-
-# Install Modal CLI
-pip install modal
-
-# Authenticate with Modal
-modal setup
-
-# Deploy the application
-modal deploy main.py
-
-# Or run locally for development
-modal serve main.py
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+pytest -q
 ```
 
-After deployment, Modal will provide an endpoint URL for the `analyze_single_variant` API.
+These tests exercise coordinate conversion, chromosome validation, reference
+allele checking, exact context length, mutation, and score direction. They do
+not download Evo2 weights or assert GPU performance.
 
----
+## Quality gates
 
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js)                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │ Gene Browser│  │  Sequence   │  │   Variant Analysis      │  │
-│  │  Component  │  │   Viewer    │  │      Dashboard          │  │
-│  └──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘  │
-│         │                │                      │                │
-└─────────┼────────────────┼──────────────────────┼────────────────┘
-          │                │                      │
-          ▼                ▼                      ▼
-   ┌──────────────┐ ┌──────────────┐    ┌────────────────┐
-   │  NCBI Gene   │ │ UCSC Genome  │    │  Modal Backend │
-   │     API      │ │     API      │    │    (H100)      │
-   └──────────────┘ └──────────────┘    └───────┬────────┘
-                                                │
-                                                ▼
-                                        ┌──────────────┐
-                                        │    Evo2      │
-                                        │  (7B Model)  │
-                                        └──────────────┘
+```bash
+cd genelm-frontend
+npm run check
+npm run build
+npm run build:cloudflare
 ```
 
-### Data Flow
+CI runs frontend formatting, lint, strict TypeScript, unit tests, the production
+build, and backend tests on every push and pull request.
 
-1. **Gene Selection** → User browses/searches genes via NCBI Gene API
-2. **Sequence Loading** → Genomic sequence fetched from UCSC API
-3. **Variant Selection** → User clicks nucleotide or selects ClinVar variant
-4. **Evo2 Analysis** → Request sent to Modal backend with H100 GPU
-5. **Prediction** → Model scores reference vs variant sequences
-6. **Results** → Delta-likelihood score + pathogenicity prediction returned
+## API
 
----
+The public browser contract is the same-origin route:
 
-## 📡 API Reference
+```http
+POST /api/analyze-variant
+Content-Type: application/json
+```
 
-### Backend Endpoint
-
-#### `POST /analyze_single_variant`
-
-Analyze a single nucleotide variant using Evo2.
-
-**Request Body:**
 ```json
 {
   "variant_pos": 43119628,
   "alt_allele": "G",
+  "expected_ref": "A",
   "genome": "hg38",
   "chromosome": "chr17"
 }
 ```
 
-**Response:**
+The protected Modal response is validated before the Worker returns it:
+
 ```json
 {
   "position": 43119628,
+  "chromosome": "chr17",
+  "genome": "hg38",
+  "model": "evo2_7b",
+  "context_length": 8192,
   "reference": "A",
-  "variant": "G",
-  "delta_score": -0.00234,
-  "prediction": "Likely pathogenic",
-  "confidence": 0.87
+  "alternate": "G",
+  "reference_score": -1234.5,
+  "alternate_score": -1234.7,
+  "delta_likelihood": -0.2,
+  "interpretation": "delta_likelihood = alternate_score - reference_score; this research score is not a clinical classification or probability"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `position` | int | Genomic position |
-| `reference` | str | Reference allele |
-| `variant` | str | Alternative allele |
-| `delta_score` | float | Log-likelihood difference (ref - var) |
-| `prediction` | str | "Likely pathogenic" or "Likely benign" |
-| `confidence` | float | Confidence score (0-1) |
+The numeric values above illustrate the schema only; they are not measured
+results from this repository.
 
----
+## Connect Modal to Cloudflare
 
-## 📊 Performance
+### 1. Deploy the authenticated Modal service
 
-### BRCA1 Benchmark
-
-| Metric | Value |
-|--------|-------|
-| **AUROC** | ~95% |
-| **Model** | Evo2 7B |
-| **Context Window** | 8,192 bp |
-| **Variants Tested** | 500 SNVs |
-| **Classification** | LOF vs FUNC/INT |
-
-The model uses a threshold-based classification derived from Youden's J statistic optimization on the BRCA1 saturation mutagenesis dataset.
-
-### Inference Performance
-
-| Configuration | Latency |
-|---------------|---------|
-| Modal H100 (cold start) | ~30s |
-| Modal H100 (warm) | ~2-5s |
-| Batch scoring (100 variants) | ~60s |
-
----
-
-## 📁 Project Structure
-
-```
-GeneLM-Evo2/
-├── genelm-frontend/          # Next.js frontend application
-│   ├── src/
-│   │   ├── app/              # App router pages
-│   │   ├── components/       # React components
-│   │   │   ├── gene-sequence.tsx
-│   │   │   ├── known-variants.tsx
-│   │   │   └── ui/           # shadcn/ui components
-│   │   └── utils/            # API utilities
-│   │       ├── variants-api.ts
-│   │       ├── genome-api.ts
-│   │       └── genes-api.ts
-│   ├── package.json
-│   └── tailwind.config.ts
-│
-├── genelm-backend/           # Modal serverless backend
-│   ├── main.py               # Evo2 model & API endpoints
-│   └── requirements.txt
-│
-└── README.md
+```bash
+cd genelm-backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+modal setup
+modal deploy main.py
 ```
 
----
+The first build compiles GPU dependencies and can take time. Record the URL
+printed for `Evo2Model.analyze_single_variant`. The function is protected with
+`requires_proxy_auth=True` and scales to at most one H100 container by default
+to constrain demo cost.
 
-## 🔮 Roadmap
+### 2. Create a Modal proxy token
 
-- [ ] Batch variant analysis
-- [ ] VCF file upload support
-- [ ] Additional gene benchmarks (TP53, BRCA2)
-- [ ] Variant effect visualization
-- [ ] Export results to PDF/CSV
-- [ ] Multi-model comparison (ESM, Nucleotide Transformer)
+```bash
+modal workspace proxy-tokens create
+```
 
----
+Save the one-time token ID (`wk-...`) and secret (`ws-...`). If Modal RBAC is
+enabled, allow the token in the environment where the app was deployed.
 
-## 🙏 Acknowledgments
+### 3. Store all three values as Cloudflare Worker secrets
 
-- **[Arc Institute](https://arcinstitute.org/)** — Evo2 DNA language model
-- **[Modal](https://modal.com/)** — Serverless GPU infrastructure
-- **[UCSC Genome Browser](https://genome.ucsc.edu/)** — Reference genome data
-- **[NCBI ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/)** — Clinical variant database
-- **[shadcn/ui](https://ui.shadcn.com/)** — Beautiful UI components
+```bash
+cd genelm-frontend
+npx wrangler secret put MODAL_ANALYZE_URL
+npx wrangler secret put MODAL_PROXY_KEY
+npx wrangler secret put MODAL_PROXY_SECRET
+```
 
----
+Paste the endpoint URL, `wk-...`, and `ws-...` when prompted. Do not use a
+`NEXT_PUBLIC_` variable for any of them.
 
-## 📄 License
+### 4. Deploy the Worker
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```bash
+npm run deploy
+```
 
----
+The deploy script retains dashboard-managed runtime variables and secrets.
+`wrangler.jsonc` also provides a Cloudflare Rate Limiting binding for three
+analysis calls per anonymous client per minute. For a public launch, add
+Cloudflare Turnstile or user authentication and a WAF rate-limit rule as a
+second cost-control layer.
 
-<div align="center">
+### 5. Smoke test
 
-**Built with 🧬 by [Jarvis Zhang](https://github.com/JarvisZhang24)**
+Open a gene such as BRCA1, click a displayed base, choose a different allele,
+and submit. Confirm that:
 
-</div>
+1. the browser only calls `/api/analyze-variant`;
+2. the response reports an 8,192 bp context and `evo2_7b`;
+3. an invalid reference allele is rejected;
+4. a fourth request within one minute returns HTTP 429;
+5. Modal scales back to zero after the configured idle window.
+
+## Résumé wording
+
+Safe wording before Modal GPU verification:
+
+> Built a full-stack human GRCh38 variant-analysis prototype using Next.js,
+> TypeScript, Cloudflare Workers, NCBI/ClinVar/UCSC APIs, and a protected Modal
+> H100 service definition for pretrained Evo2-7B inference.
+
+> Implemented strand-aware SNV normalization and reference-versus-alternate
+> likelihood scoring over fixed 8,192 bp contexts, with strict coordinate/data
+> validation, rate limiting, unit tests, and CI.
+
+After deployment, replace “service definition” with “inference service” only
+after a real end-to-end smoke test. Add latency, throughput, cost, or AUROC only
+from persisted, reproducible run artifacts.
+
+## Attribution
+
+- [Evo2](https://github.com/ArcInstitute/evo2) by Arc Institute
+- [UCSC Genome Browser API](https://api.genome.ucsc.edu/)
+- [NCBI Gene](https://www.ncbi.nlm.nih.gov/gene/) and
+  [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) and
+  [Modal](https://modal.com/)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

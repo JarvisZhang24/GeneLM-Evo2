@@ -1,123 +1,91 @@
-// export interface SingleGeneInfo {
-//   symbol: string;
-//   chromsome: string;
-//   description: string;
-//   gene_id?: string;
-//   type_of_gene : string
-// }
+import { z } from "zod";
 
-// export async function getGenes(query: string, genome: string) {
-//   const getGenesUrl =
-//     "https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search";
-
-//   const getGenesParams = new URLSearchParams({
-//     terms: query,
-//     df: "chromosome,Symbol,description,map_location,type_of_gene",
-//     ef: "chromosome,Symbol,description,map_location,type_of_gene,GenomicInfo,GeneID",
-//   });
-
-//   const getGenesResponse = await fetch(`${getGenesUrl}?${getGenesParams}`);
-
-//   if (!getGenesResponse.ok) throw new Error("NCBI API Error");
-
-//   const genesData = await getGenesResponse.json();
-
-//   const genesResult: SingleGeneInfo[] = [];
-
-// 	if(genesData[0] > 0){
-//     const fieldMap = genesData[2]
-
-//     const geneIds = fieldMap.GeneID || []
-
-//     for (let i = 0; i < Math.min(10 , genesData[0]) ; ++i){
-//       if (i < genesData[3].length){
-//         try {
-//           const geneData = genesData[3][i]
-
-//           let chrom = geneData[0]
-
-//           if(chrom && !chrom.startsWith("chr")){
-//             chrom = `chr${chrom}`
-//           }
-
-//           genesResult.push({
-//             chromsome : chrom,
-//             gene_id :geneIds[i] ||"",
-//             symbol : geneData[1],
-//             description:geneData[2],
-//             type_of_gene:geneData[4]
-//           }) 
-
-//         } catch {
-//           continue
-          
-//         }
-
-//       }
-//     }
-		
-// 	}
-
-//   return {query , genome , genesResult}
-
-// }
-
+export const SUPPORTED_GENOME = "hg38" as const;
 
 export interface SingleGeneInfo {
   symbol: string;
   chromosome: string;
   description: string;
-  gene_id?: string;
+  gene_id: string;
   type_of_gene: string;
 }
 
-export async function getGenes(query: string, genome: string) {
-  const baseUrl = "https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search";
+const clinicalTablesSchema = z.tuple([
+  z.number(),
+  z.array(z.string()),
+  z.record(z.array(z.union([z.string(), z.number(), z.null()]))),
+  z.array(z.unknown()).optional(),
+]);
 
-  // 使用纯 ef，不再使用 df
+const geneSummarySchema = z.object({
+  result: z
+    .object({ uids: z.array(z.string()).optional() })
+    .catchall(z.unknown()),
+});
+
+function normalizeChromosome(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) return "";
+  return value.toLowerCase().startsWith("chr") ? value : `chr${value}`;
+}
+
+function valueAt(
+  values: Array<string | number | null> | undefined,
+  index: number,
+) {
+  const value = values?.[index];
+  return value == null ? "" : String(value);
+}
+
+export async function getGenes(query: string): Promise<SingleGeneInfo[]> {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return [];
+
   const params = new URLSearchParams({
-    terms: query,
-    ef: "chromosome,Symbol,description,map_location,type_of_gene,GeneID"
+    terms: trimmedQuery,
+    count: "10",
+    ef: "chromosome,Symbol,description,type_of_gene,GeneID",
   });
+  const response = await fetch(
+    `https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search?${params}`,
+  );
+  if (!response.ok) throw new Error("NCBI gene search failed");
 
-  const res = await fetch(`${baseUrl}?${params.toString()}`);
+  const [, , fields] = clinicalTablesSchema.parse(await response.json());
+  const count = Math.min(10, fields.GeneID?.length ?? 0);
+  return Array.from({ length: count }, (_, index) => ({
+    gene_id: valueAt(fields.GeneID, index),
+    symbol: valueAt(fields.Symbol, index),
+    chromosome: normalizeChromosome(valueAt(fields.chromosome, index)),
+    description: valueAt(fields.description, index),
+    type_of_gene: valueAt(fields.type_of_gene, index),
+  })).filter((gene) => gene.gene_id && gene.chromosome);
+}
 
-  if (!res.ok) throw new Error("NCBI API Error");
+export async function getGeneById(geneId: string): Promise<SingleGeneInfo> {
+  if (!/^\d+$/.test(geneId)) throw new Error("Gene ID must be numeric");
+  const params = new URLSearchParams({
+    db: "gene",
+    id: geneId,
+    retmode: "json",
+  });
+  const response = await fetch(
+    `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?${params}`,
+  );
+  if (!response.ok) throw new Error("NCBI gene lookup failed");
 
-  const genesData = await res.json();
+  const parsed = geneSummarySchema.parse(await response.json());
+  const record = parsed.result[geneId];
+  if (!record || typeof record !== "object") throw new Error("Gene not found");
+  const data = record as Record<string, unknown>;
+  const chromosome = normalizeChromosome(data.chromosome);
+  if (!chromosome) throw new Error("No chromosome is available for this gene");
 
-  const total = genesData[0];
-  const fieldMap = genesData[2];
-
-  if (!total || !fieldMap) {
-    return { query, genome, genesResult: [] };
-  }
-
-  const chromosomes = fieldMap.chromosome || [];
-  const symbols = fieldMap.Symbol || [];
-  const descriptions = fieldMap.description || [];
-  const types = fieldMap.type_of_gene || [];
-  const geneIds = fieldMap.GeneID || [];
-
-  const genesResult: SingleGeneInfo[] = [];
-
-  const count = Math.min(10, total);
-
-  for (let i = 0; i < count; i++) {
-    let chrom = chromosomes[i] || "";
-
-    if (chrom && !chrom.startsWith("chr")) {
-      chrom = `chr${chrom}`;
-    }
-
-    genesResult.push({
-      chromosome: chrom,
-      symbol: symbols[i] || "",
-      description: descriptions[i] || "",
-      type_of_gene: types[i] || "",
-      gene_id: geneIds[i] || ""
-    });
-  }
-
-  return { query, genome, genesResult };
+  return {
+    gene_id: geneId,
+    symbol: typeof data.name === "string" ? data.name : geneId,
+    chromosome,
+    description: typeof data.description === "string" ? data.description : "",
+    type_of_gene:
+      typeof data.genetic_source === "string" ? data.genetic_source : "gene",
+  };
 }

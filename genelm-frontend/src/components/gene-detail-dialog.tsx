@@ -18,6 +18,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { SingleGeneInfo } from "~/utils/genes-api";
 
 interface GeneDetailDialogProps {
@@ -34,11 +35,12 @@ export function GeneDetailDialog({
   genomeId, // 新增
 }: GeneDetailDialogProps) {
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
 
   if (!gene) return null;
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -162,7 +164,7 @@ export function GeneDetailDialog({
               if (genomeId) {
                 sessionStorage.setItem("selectedGenomeId", genomeId); // 新增
               }
-              window.location.href = `/gene/${gene.gene_id}`;
+              router.push(`/gene/${gene.gene_id}`);
             }}
           >
             <ArrowRight className="mr-2 h-4 w-4" />

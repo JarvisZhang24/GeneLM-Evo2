@@ -10,25 +10,23 @@ import {
   type GeneDetailsFromSearch,
 } from "~/utils/gene-details-api";
 import { fetchGeneSequence as apiFetchGeneSequence } from "~/utils/gene-sequence-api";
-import { 
-  fetchClinvarVariants as apiFetchClinvarVariants ,
-  type ClinvarVariant
+import {
+  fetchClinvarVariants as apiFetchClinvarVariants,
+  type ClinvarVariant,
 } from "~/utils/variants-api";
 import { GeneInformation } from "./gene-information";
 import { GeneSequence } from "./gene-sequence";
-import KnownVariants from "./known-variants"
+import KnownVariants from "./known-variants";
+import { VariantAnalysisDialog } from "./variant-analysis-dialog";
 
 export default function GeneViewer({
   gene,
-  genomeId,
   onClose,
 }: {
   gene: SingleGeneInfo;
-  genomeId: string;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [geneDetail, setGeneDetail] = useState<GeneDetailsFromSearch | null>(
     null,
   );
@@ -46,40 +44,37 @@ export default function GeneViewer({
   const [clinvarVariants, setClinvarVariants] = useState<ClinvarVariant[]>([]);
   const [isLoadingClinvar, setIsLoadingClinvar] = useState(false);
   const [errorClinvar, setErrorClinvar] = useState<string | null>(null);
+  const [selectedBase, setSelectedBase] = useState<{
+    position: number;
+    nucleotide: string;
+  } | null>(null);
 
   const fetchGeneSequence = useCallback(
     async (start: number, end: number) => {
       try {
         setIsLoadingSequence(true);
         setError(null);
-        const {
-          sequence,
-          actualRange: fetchedRange,
-          error: apiError,
-        } = await apiFetchGeneSequence(gene.chromosome, start, end, genomeId);
+        const { sequence, actualRange: fetchedRange } =
+          await apiFetchGeneSequence(gene.chromosome, start, end);
 
         setGeneSequence(sequence);
 
         setActualRange(fetchedRange);
-
-        if (apiError) {
-          setError(apiError);
-        }
-
-        //console.log(sequence)
-      } catch (error) {
-        setError("failed to load sequence data");
+      } catch (sequenceError) {
+        setError(
+          sequenceError instanceof Error
+            ? sequenceError.message
+            : "Failed to load sequence data",
+        );
       } finally {
         setIsLoadingSequence(false);
       }
     },
-    [gene.chromosome, genomeId],
+    [gene.chromosome],
   );
-
 
   useEffect(() => {
     const geneDetailData = async () => {
-      setIsLoading(true);
       setError(null);
 
       setGeneDetail(null);
@@ -92,7 +87,6 @@ export default function GeneViewer({
 
       if (!gene.gene_id) {
         setError("Gene ID is missing , can not fetch detail ");
-        setIsLoading(false);
         return;
       }
 
@@ -115,14 +109,16 @@ export default function GeneViewer({
           await fetchGeneSequence(fetchedGeneRange.start, fetchedGeneRange.end);
           //console.log(fetchedGeneDeatils)
         }
-      } catch (error) {
-        setError("faield to load gene information , please try again!");
-      } finally {
-        setIsLoading(false);
+      } catch (detailError) {
+        setError(
+          detailError instanceof Error
+            ? detailError.message
+            : "Failed to load gene information",
+        );
       }
     };
 
-    geneDetailData();
+    void geneDetailData();
   }, [gene, fetchGeneSequence]);
 
   const handleLoadSequence = useCallback(() => {
@@ -132,8 +128,8 @@ export default function GeneViewer({
 
     if (isNaN(start) || isNaN(end)) {
       validationError = "Please enter valid start and end positions";
-    } else if (start >= end) {
-      validationError = "Start position must be less than end position";
+    } else if (start > end) {
+      validationError = "Start position must not exceed end position";
     } else if (geneBounds) {
       const minBound = Math.min(geneBounds.min, geneBounds.max);
       const maxBound = Math.max(geneBounds.min, geneBounds.max);
@@ -143,8 +139,8 @@ export default function GeneViewer({
         validationError = `End position (${end.toLocaleString()}) exceeds the maximum value (${maxBound.toLocaleString()})`;
       }
 
-      if (end - start > 10000) {
-        validationError = `Selected range exceeds maximum view range of 10.000 bp.`;
+      if (end - start + 1 > 10000) {
+        validationError = "Selected range exceeds the 10,000 bp view limit";
       }
     }
 
@@ -154,7 +150,7 @@ export default function GeneViewer({
     }
 
     setError(null);
-    fetchGeneSequence(start, end);
+    void fetchGeneSequence(start, end);
   }, [startPosition, endPosition, fetchGeneSequence, geneBounds]);
 
   const sequenceRange = actualRange
@@ -162,43 +158,51 @@ export default function GeneViewer({
     : null;
 
   const updateClinvarVariant = (
-      clinvar_id: string,
-      updateVariant: ClinvarVariant,
-    ) => {
-      setClinvarVariants((currentVariants) =>
-        currentVariants.map((v) =>
-          v.clinvar_id == clinvar_id ? updateVariant : v,
-        ),
-      );
+    clinvar_id: string,
+    updateVariant: ClinvarVariant,
+  ) => {
+    setClinvarVariants((currentVariants) =>
+      currentVariants.map((v) =>
+        v.clinvar_id === clinvar_id ? updateVariant : v,
+      ),
+    );
   };
-  
 
-  const fetchClinvarVariants = async() => {
-    if(!geneBounds || !gene.chromosome){
+  const fetchClinvarVariants = useCallback(async () => {
+    if (!geneBounds || !gene.chromosome) {
       return;
     }
 
     setIsLoadingClinvar(true);
     setErrorClinvar(null);
 
-    try{
-      const variants = await apiFetchClinvarVariants(gene.chromosome, geneBounds, genomeId);
+    try {
+      const variants = await apiFetchClinvarVariants(
+        gene.chromosome,
+        geneBounds,
+      );
       setClinvarVariants(variants);
-      //console.log(variants);
-    }catch(error){
-      setErrorClinvar("failed to load clinvar variants");
+    } catch (variantError) {
+      setErrorClinvar(
+        variantError instanceof Error
+          ? variantError.message
+          : "Failed to load ClinVar variants",
+      );
       setClinvarVariants([]);
-    }finally{
+    } finally {
       setIsLoadingClinvar(false);
     }
-    
-  }
+  }, [gene.chromosome, geneBounds]);
 
   useEffect(() => {
-    if(geneBounds && gene.chromosome){
-      fetchClinvarVariants();
+    if (geneBounds && gene.chromosome) {
+      const timer = window.setTimeout(() => {
+        void fetchClinvarVariants();
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-  }, [geneBounds]);
+    return undefined;
+  }, [fetchClinvarVariants, geneBounds, gene.chromosome]);
 
   return (
     <div className="space-y-6">
@@ -220,13 +224,10 @@ export default function GeneViewer({
 
       <KnownVariants
         refreshVariants={fetchClinvarVariants}
-        showComparison={() => {}}
         updateVariant={updateClinvarVariant}
         variants={clinvarVariants}
         isLoading={isLoadingClinvar}
         error={errorClinvar}
-        genomeId={genomeId}
-        gene={gene}
       />
 
       <GeneSequence
@@ -241,8 +242,21 @@ export default function GeneViewer({
         isLoading={isLoadingSequence}
         error={error}
         onSequenceLoadRequest={handleLoadSequence}
-        onSequenceClick={() => {}}
+        onSequenceClick={(position, nucleotide) =>
+          setSelectedBase({ position, nucleotide })
+        }
         maxViewRange={10000}
+      />
+
+      <VariantAnalysisDialog
+        key={`${selectedBase?.position ?? "none"}-${selectedBase?.nucleotide ?? "none"}`}
+        open={selectedBase !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedBase(null);
+        }}
+        chromosome={gene.chromosome}
+        position={selectedBase?.position ?? null}
+        reference={selectedBase?.nucleotide ?? null}
       />
     </div>
   );

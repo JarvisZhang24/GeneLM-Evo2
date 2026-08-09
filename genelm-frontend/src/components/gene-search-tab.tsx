@@ -111,7 +111,7 @@ export function GeneSearchTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[...Array(5)].map((_, i) => (
+                {Array.from({ length: 5 }, (_, i) => (
                   <TableRow key={i}>
                     <TableCell>
                       <Skeleton className="h-4 w-24" />
@@ -154,7 +154,7 @@ export function GeneSearchTab({
               onClick={loadExample}
             >
               <Activity className="mr-2 h-4 w-4" />
-              Try "BRCA1" Example
+              Try &quot;BRCA1&quot; Example
             </Button>
           )}
         </div>

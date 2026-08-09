@@ -1,7 +1,3 @@
-modal
-matplotlib 
-pandas 
-seaborn 
-scikit-learn 
-openpyxl
-requests
+modal==1.5.3
+pydantic==2.13.4
+requests==2.34.2

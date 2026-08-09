@@ -1,4 +1,6 @@
 .DS_Store
 .env
-npm_modules
+node_modules/
+.dev.vars
+.open-next/
 .idea

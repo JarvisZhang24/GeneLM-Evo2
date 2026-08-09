@@ -1,4 +1,5 @@
-# Local Next.js development only. Never commit real values.
+# Used by `wrangler dev`; Next development reads the matching .env file.
+NEXTJS_ENV=development
 MODAL_ANALYZE_URL=https://YOUR-WORKSPACE--genelm-evo2-evo2model-analyze-single-variant.modal.run
 MODAL_PROXY_KEY=wk-REPLACE_ME
 MODAL_PROXY_SECRET=ws-REPLACE_ME

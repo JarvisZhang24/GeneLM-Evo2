@@ -136,7 +136,7 @@ export function GeneInformation({
                 <PersonStanding className="h-4 w-4 text-slate-400" />
               </div>
               <div className="mt-2 text-sm font-bold text-slate-900">
-                {geneDetail?.organism?.scientificname || "N/A"}
+                {geneDetail?.organism?.scientificname ?? "N/A"}
               </div>
               {geneDetail?.organism?.commonname ? (
                 <div className="mt-0.5 text-xs font-medium text-slate-600">

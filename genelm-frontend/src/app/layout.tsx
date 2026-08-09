@@ -1,25 +1,19 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Geist } from "next/font/google";
 
 export const metadata: Metadata = {
-  title: "GeneLM-EV2 Web UI",
+  title: "GeneLM Evo2 | GRCh38 Variant Research",
   description:
-    "Web interface for GeneLM-EV2, an open-source large language model optimized for gene sequence understanding and generation.",
+    "Research interface for GRCh38 gene exploration and Evo2-7B single-nucleotide variant likelihood scoring.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

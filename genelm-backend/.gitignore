@@ -6,6 +6,16 @@
 # evo2
 evo2/
 
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Generated benchmark artifacts
+brca1_variant_analysis.png
+results/
+
 # Log files
 *.log
 npm-debug.log*
@@ -47,3 +57,4 @@ evo2-backend/*.env
 evo2-backend/.env
 evo2-backend/.modal*
 evo2-backend/brca1_analysis_plot.png
+evo2-backend/evo2
