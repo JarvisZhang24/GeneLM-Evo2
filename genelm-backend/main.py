@@ -68,6 +68,7 @@ evo2_image = (
     )
     .uv_pip_install(
         "fastapi[standard]==0.139.2",
+        "packaging==26.3",
         "pydantic==2.13.4",
         "requests==2.34.2",
     )
